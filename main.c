@@ -1,5 +1,6 @@
 #include "builtins.h"
 #include "line.h"
+#include "token.h"
 #include <bits/wait.h>
 #include <linux/wait.h>
 #include <stdio.h>
@@ -45,17 +46,24 @@ int ashx_execute(char **args) {
 
 void ashx_loop(void) {
   char *line;
-  char **args;
+  TokensBuffer *buf;
   int status;
 
   do {
     printf("$ ");
     line = ashx_readline();
-    args = ashx_split_line(line);
-    status = ashx_execute(args);
+    // args = ashx_split_line(line);
+    buf = tokenize(line);
+    for (int i = 0; i < buf->tokens_written; i++) {
+      printf("%d: %s\n", i, buf->tokens[i]);
+    }
+    status = ashx_execute(buf->tokens);
 
     free(line);
-    free(args);
+    // i'll use an areana allocator in the future
+    for (int i = 0; i < buf->tokens_written; i++) {
+      free(buf->tokens[i]);
+    }
   } while (status);
 }
 
