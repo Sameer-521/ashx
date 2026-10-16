@@ -1,5 +1,5 @@
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef LEXER_H
+#define LEXER_H
 
 #include <sys/types.h>
 

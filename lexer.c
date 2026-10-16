@@ -1,4 +1,4 @@
-#include "token.h"
+#include "lexer.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,9 +66,8 @@ int _finalize_write(TextBuffer *text_buf, TokensBuffer *tok_buf) {
 }
 
 TokensBuffer *tokenize(char *line) {
-  int ch;
-  int i, position = 0, bufsize = TOK_BUFSIZE, num_tokens = NUM_TOKENS;
-  int state = NORMAL;
+  int ch, state = NORMAL;
+  uint position = 0, num_tokens = NUM_TOKENS;
   TextBuffer text = {.chars_written = 0, .bufsize = TOK_BUFSIZE};
   TokensBuffer *tokens_buf;
 
@@ -84,7 +83,7 @@ TokensBuffer *tokenize(char *line) {
     exit(EXIT_FAILURE);
   }
 
-  text.buf = malloc(bufsize * sizeof(char));
+  text.buf = malloc(text.bufsize * sizeof(char));
   if (text.buf == NULL) {
     fprintf(stderr, "ashx: allocation error\n");
     exit(EXIT_FAILURE);
@@ -109,7 +108,7 @@ TokensBuffer *tokenize(char *line) {
       if (state == WORD) {
         _finalize_write(&text, tokens_buf);
         state = NORMAL;
-        continue;
+        break;
       }
 
       if (state == IN_QOUTE)
@@ -138,5 +137,6 @@ TokensBuffer *tokenize(char *line) {
   }
 
   free(text.buf);
+  tokens_buf->tokens[tokens_buf->tokens_written] = NULL;
   return tokens_buf;
 }
