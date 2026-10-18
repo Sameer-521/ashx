@@ -5,21 +5,18 @@
 #include <stdlib.h>
 
 void ashx_loop(void) {
-  char *line;
-  TokensBuffer *buf;
+  struct getline_out input;
+  TokenizeOut tokenized;
   int status;
 
   do {
     printf("$ ");
-    line = ashx_readline();
-    buf = tokenize(line);
-    status = ashx_execute(buf->tokens);
+    input = ashx_readline();
+    tokenized = tokenize(input);
+    status = ashx_execute(tokenized.tokens_buf.tokens);
 
-    free(line);
-    // i'll use an arena allocator in the future
-    for (int i = 0; i < buf->tokens_written; i++) {
-      free(buf->tokens[i]);
-    }
+    free(input.line);
+    free(tokenized.data);
   } while (status);
 }
 

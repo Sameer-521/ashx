@@ -1,9 +1,13 @@
 #ifndef LINE_H
 #define LINE_H
 
-#define ASHX_LINE_BUFSIZE 1024
+#include <sys/types.h>
 
-char *ashx_readline(void);
-char **ashx_split_line(char *line);
+struct getline_out {
+  char *line;
+  uint len;
+};
+
+struct getline_out ashx_readline(void);
 
 #endif
