@@ -27,7 +27,8 @@ static inline int _write_ch(TextBuffer *t, char ch) {
   return 1;
 }
 
-static inline int _finalize_write(TextBuffer *t, TokenArray *arr) {
+static inline int _finalize_write(TextBuffer *t, TokenArray *arr,
+                                  TokenType type) {
   char *arena_end, *token_start;
 
   _write_ch(t, '\0');
@@ -39,7 +40,7 @@ static inline int _finalize_write(TextBuffer *t, TokenArray *arr) {
   uint offset = token_start - t->arena.data;
   // str_repr is null until the str pointers are computed in case
   // the arena rellocs and the block is moved
-  Token new = {.str_repr = NULL, .str_offset = offset, .type = TOKEN_WORD};
+  Token new = {.str_repr = NULL, .str_offset = offset, .type = type};
 
   if (arr_append(arr, new) != SUCCESS) {
     fprintf(stderr, "ashx: could not append new token to array");
@@ -72,7 +73,7 @@ TokenizeOut tokenize(struct getline_out input) {
     switch (ch) {
     case ' ':
       if (state == IN_WORD) {
-        _finalize_write(&text, &token_arr);
+        _finalize_write(&text, &token_arr, TOKEN_WORD);
         state = NORMAL;
         continue;
       }
@@ -83,7 +84,7 @@ TokenizeOut tokenize(struct getline_out input) {
 
     case '\n':
       if (state == IN_WORD) {
-        _finalize_write(&text, &token_arr);
+        _finalize_write(&text, &token_arr, TOKEN_WORD);
         state = NORMAL;
         break;
       }
@@ -94,9 +95,9 @@ TokenizeOut tokenize(struct getline_out input) {
 
     case '\'':
       if (state == IN_QOUTE) {
-        _finalize_write(&text, &token_arr);
+        _finalize_write(&text, &token_arr, TOKEN_QUOTED);
         state = NORMAL;
-        continue;
+        break;
       }
       state = IN_QOUTE;
       break;
