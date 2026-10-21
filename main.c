@@ -1,3 +1,4 @@
+#include "alloc.h"
 #include "exec.h"
 #include "lexer.h"
 #include "line.h"
@@ -7,14 +8,26 @@
 void ashx_loop(void) {
   struct getline_out input;
   TokenizeOut tokenized;
-  int status;
+  char **args;
+  int status, i;
 
   do {
     printf("$ ");
     input = ashx_readline();
     tokenized = tokenize(input);
-    status = ashx_execute(tokenized.tokens_buf.tokens);
+    args = malloc(sizeof(char *) * (tokenized.token_arr.size + 1));
+    if (!args) {
+      fprintf(stderr, "ashx: allocation failed\n");
+      exit(EXIT_FAILURE);
+    }
 
+    for (i = 0; i < tokenized.token_arr.size; i++) {
+      args[i] = tokenized.token_arr.tokens[i].str_repr;
+    }
+    args[i] = NULL;
+    status = ashx_execute(args);
+
+    arr_destroy(&(tokenized.token_arr));
     free(input.line);
     free(tokenized.data);
   } while (status);
