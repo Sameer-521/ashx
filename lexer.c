@@ -17,7 +17,7 @@ enum TokenizerState {
   IN_QOUTE = 2,
 };
 
-static inline int _write_ch(TextBuffer *t, char ch) {
+static int write_ch(TextBuffer *t, char ch) {
 
   if (arena_write(&(t->arena), ch) == 0) {
     t->written++;
@@ -27,11 +27,10 @@ static inline int _write_ch(TextBuffer *t, char ch) {
   return 1;
 }
 
-static inline int _finalize_write(TextBuffer *t, TokenArray *arr,
-                                  TokenType type) {
+static int flush_text_to_token(TextBuffer *t, TokenArray *arr, TokenType type) {
   char *arena_end, *token_start;
 
-  _write_ch(t, '\0');
+  write_ch(t, '\0');
   arena_end = t->arena.data + t->arena.used;
   token_start = arena_end - t->written;
 
@@ -73,29 +72,29 @@ TokenizeOut tokenize(struct getline_out input) {
     switch (ch) {
     case ' ':
       if (state == IN_WORD) {
-        _finalize_write(&text, &token_arr, TOKEN_WORD);
+        flush_text_to_token(&text, &token_arr, TOKEN_WORD);
         state = NORMAL;
         continue;
       }
 
       if (state == IN_QOUTE)
-        _write_ch(&text, ch);
+        write_ch(&text, ch);
       break;
 
     case '\n':
       if (state == IN_WORD) {
-        _finalize_write(&text, &token_arr, TOKEN_WORD);
+        flush_text_to_token(&text, &token_arr, TOKEN_WORD);
         state = NORMAL;
         break;
       }
 
       if (state == IN_QOUTE)
-        _write_ch(&text, ch);
+        write_ch(&text, ch);
       break;
 
     case '\'':
       if (state == IN_QOUTE) {
-        _finalize_write(&text, &token_arr, TOKEN_QUOTED);
+        flush_text_to_token(&text, &token_arr, TOKEN_QUOTED);
         state = NORMAL;
         break;
       }
@@ -104,10 +103,10 @@ TokenizeOut tokenize(struct getline_out input) {
 
     default:
       if (state == IN_QOUTE) {
-        _write_ch(&text, ch);
+        write_ch(&text, ch);
       } else {
         state = IN_WORD;
-        _write_ch(&text, ch);
+        write_ch(&text, ch);
       }
       break;
     }
