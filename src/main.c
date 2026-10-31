@@ -30,6 +30,7 @@ void ashx_loop(void) {
     arr_destroy(&(tokenized.token_arr));
     free(input.line);
     free(tokenized.data);
+    free(args);
   } while (status);
 }
 

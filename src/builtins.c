@@ -1,5 +1,7 @@
 #include "builtins.h"
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 char *builtin_str[] = {"cd", "help", "exit"};
@@ -29,4 +31,23 @@ int ashx_help(char **args) {
   return 1;
 }
 
-int ashx_exit(char **args) { return 0; }
+int ashx_exit(char **args) {
+  int status = 0;
+  const char *str_num = args[1];
+
+  // too many args?
+  if (args[2] != NULL) {
+    fprintf(stderr, "exit: too many arguments\n");
+    return 1;
+  }
+
+  // invalid int
+  status = atoi(str_num);
+  if (status == 0) {
+    fprintf(stderr, "exit: %s: invalid integer\n", str_num);
+    return 1;
+  }
+
+  // complete it later
+  return 0;
+}
