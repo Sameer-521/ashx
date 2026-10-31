@@ -2,10 +2,9 @@
 #include "token.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
 // ARENA
-Arena arena_create(uint size) {
+Arena arena_create(size_t size) {
   char *tmp;
   Arena arena = {0};
 
@@ -44,7 +43,7 @@ int arena_write(Arena *arena, char ch) {
 void arena_destroy(Arena *arena) { free(arena->data); }
 
 // TOKEN_ARRAY IMPLEMENTATIONS
-TokenArrayOut arr_create(uint cap) {
+TokenArrayOut arr_create(size_t cap) {
   TokenArray arr = {0};
   TokenArrayOut out = {0};
 
@@ -65,7 +64,7 @@ TokenArrayOut arr_create(uint cap) {
 
 TokenArrayStatus arr_append(TokenArray *arr, Token token) {
   Token *tmp;
-  uint old_cap = sizeof(Token) * arr->cap;
+  size_t old_cap = sizeof(Token) * arr->cap;
 
   if (arr->size + 1 >= arr->cap) {
     tmp = realloc(arr->tokens, old_cap * 2);

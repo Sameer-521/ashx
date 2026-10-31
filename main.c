@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 void ashx_loop(void) {
-  struct getline_out input;
+  GetLineOut input;
   TokenizeOut tokenized;
   char **args;
   int status, i;

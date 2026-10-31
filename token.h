@@ -1,7 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef enum {
   TOKEN_WORD = 0,
@@ -11,7 +11,7 @@ typedef enum {
 
 typedef struct token {
   char *str_repr;
-  uint str_offset;
+  size_t str_offset;
   TokenType type;
 } Token;
 

@@ -1,8 +1,8 @@
 #ifndef ALLOC_H
 #define ALLOC_H
 
+#include <stddef.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <stdbool.h>
 #include "token.h"
 
@@ -12,11 +12,11 @@
 // arena forward declarations and types
 typedef struct arena {
   char *data;
-  uint size;
-  uint used;
+  size_t size;
+  size_t used;
 } Arena;
 
-Arena arena_create(uint size);
+Arena arena_create(size_t size);
 
 int arena_write(Arena *arena, char ch);
 
@@ -26,8 +26,8 @@ void arena_destroy(Arena *arena);
 // token array forward declarations and types
 typedef struct token_array {
   Token *tokens;
-  uint size;
-  uint cap;
+  size_t size;
+  size_t cap;
 } TokenArray;
 
 typedef enum {
@@ -42,7 +42,7 @@ typedef struct {
   TokenArrayStatus status;
 } TokenArrayOut;
 
-TokenArrayOut arr_create(uint cap);
+TokenArrayOut arr_create(size_t cap);
 
 TokenArrayStatus arr_append(TokenArray *arr, Token token);
 

@@ -3,7 +3,7 @@
 
 #include "alloc.h"
 #include "line.h"
-#include <sys/types.h>
+#include <stddef.h>
 
 #define KiB(x) (x) * 1024
 #define MAX_CHARS KiB(4) 
@@ -14,8 +14,8 @@
 
 typedef struct tokens_buffer {
   char **tokens;
-  uint tokens_written;
-  uint bufsize;
+  size_t tokens_written;
+  size_t bufsize;
 } TokensBuffer;
 
 typedef struct tokenize_out {
@@ -23,6 +23,6 @@ typedef struct tokenize_out {
   char *data;
 } TokenizeOut;
 
-TokenizeOut tokenize(struct getline_out input);
+TokenizeOut tokenize(GetLineOut input);
 
 #endif

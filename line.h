@@ -1,13 +1,13 @@
 #ifndef LINE_H
 #define LINE_H
 
-#include <sys/types.h>
+#include <stddef.h>
 
-struct getline_out {
+typedef struct {
   char *line;
-  uint len;
-};
+  size_t len;
+} GetLineOut;
 
-struct getline_out ashx_readline(void);
+GetLineOut ashx_readline(void);
 
 #endif

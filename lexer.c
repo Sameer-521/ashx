@@ -2,13 +2,12 @@
 #include "lexer.h"
 #include "line.h"
 #include "token.h"
-#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
-#include <sys/types.h>
 
 typedef struct {
   Arena arena;
-  uint written;
+  size_t written;
 } TextBuffer;
 
 enum TokenizerState {
@@ -28,15 +27,11 @@ static int write_ch(TextBuffer *t, char ch) {
 }
 
 static int flush_text_to_token(TextBuffer *t, TokenArray *arr, TokenType type) {
-  char *arena_end, *token_start;
-
   write_ch(t, '\0');
-  arena_end = t->arena.data + t->arena.used;
-  token_start = arena_end - t->written;
+
+  size_t offset = t->arena.used - t->written;
 
   t->written = 0;
-
-  uint offset = token_start - t->arena.data;
   // str_repr is null until the str pointers are computed in case
   // the arena rellocs and the block is moved
   Token new = {.str_repr = NULL, .str_offset = offset, .type = type};
@@ -49,9 +44,9 @@ static int flush_text_to_token(TextBuffer *t, TokenArray *arr, TokenType type) {
   return 0;
 }
 
-TokenizeOut tokenize(struct getline_out input) {
+TokenizeOut tokenize(GetLineOut input) {
   int ch, state = NORMAL;
-  uint position = 0;
+  size_t position = 0;
   TextBuffer text = {0};
   TokenizeOut out = {0};
   TokenArray token_arr;
@@ -115,7 +110,7 @@ TokenizeOut tokenize(struct getline_out input) {
 
   // compute str_view ptrs
   Token *tok;
-  for (int i = 0; i < token_arr.size; i++) {
+  for (size_t i = 0; i < token_arr.size; i++) {
     tok = &(token_arr.tokens[i]);
     tok->str_repr = text.arena.data + tok->str_offset;
   }

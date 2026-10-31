@@ -5,10 +5,10 @@
 #include <string.h>
 #include <sys/types.h>
 
-struct getline_out ashx_readline(void) {
+GetLineOut ashx_readline(void) {
   char *line = NULL;
   size_t bufsize = 0;
-  struct getline_out out;
+  GetLineOut out;
 
   if (getline(&line, &bufsize, stdin) == -1) {
     if (feof(stdin)) {
