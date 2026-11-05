@@ -12,9 +12,37 @@ typedef struct {
 
 enum TokenizerState {
   NORMAL = 0,
-  IN_WORD = 1,
-  IN_QOUTE = 2,
+  IN_WORD,
+  IN_QUOTE,
+
+  // Single & Multi-character Operator States
+  IN_GREATER_THAN,    // '>'
+  IN_APPEND,          // '>>'
+  IN_LESS_THAN,       // '<'
+  IN_HEREDOC,         // '<<'
+  IN_PIPE,            // '|'
+  IN_OR,              // '||'
+  IN_AMPERSAND,       // '&'
+  IN_AND,             // '&&'
+  IN_SEMICOLON,       // ';'
+  IN_DOUBLE_SEMICOLON // ';;'
 };
+
+static const TokenType state_to_token_type[] = {
+    [NORMAL] = TOKEN_WORD,
+    [IN_WORD] = TOKEN_WORD,
+    [IN_QUOTE] = TOKEN_QUOTED,
+
+    [IN_GREATER_THAN] = TOKEN_GREATER_THAN,
+    [IN_APPEND] = TOKEN_APPEND,
+    [IN_LESS_THAN] = TOKEN_LESS_THAN,
+    [IN_HEREDOC] = TOKEN_HEREDOC,
+    [IN_PIPE] = TOKEN_PIPE,
+    [IN_OR] = TOKEN_OR,
+    [IN_AMPERSAND] = TOKEN_AMPERSAND,
+    [IN_AND] = TOKEN_AND,
+    [IN_SEMICOLON] = TOKEN_SEMICOLON,
+    [IN_DOUBLE_SEMICOLON] = TOKEN_DOUBLE_SEMICOLON};
 
 static int write_ch(TextBuffer *t, char ch) {
 
@@ -66,14 +94,14 @@ TokenizeOut tokenize(GetLineOut input) {
   while (ch != '\0') {
     switch (ch) {
     case ' ':
-      if (state == IN_WORD) {
-        flush_text_to_token(&text, &token_arr, TOKEN_WORD);
-        state = NORMAL;
-        continue;
-      }
-
-      if (state == IN_QOUTE)
+      if (state == IN_QUOTE)
         write_ch(&text, ch);
+      else if (state == NORMAL)
+        ;
+      else {
+        flush_text_to_token(&text, &token_arr, state_to_token_type[state]);
+        state = NORMAL;
+      }
       break;
 
     case '\n':
@@ -83,25 +111,42 @@ TokenizeOut tokenize(GetLineOut input) {
         break;
       }
 
-      if (state == IN_QOUTE)
+      if (state == IN_QUOTE)
         write_ch(&text, ch);
       break;
 
     case '\'':
-      if (state == IN_QOUTE) {
+      if (state == IN_QUOTE) {
         flush_text_to_token(&text, &token_arr, TOKEN_QUOTED);
         state = NORMAL;
         break;
       }
-      state = IN_QOUTE;
+      state = IN_QUOTE;
+      break;
+
+    case '|':
+      if (state == IN_QUOTE) {
+        write_ch(&text, ch);
+      } else if (state == IN_PIPE) {
+        write_ch(&text, ch);
+        flush_text_to_token(&text, &token_arr, TOKEN_OR);
+        state = NORMAL;
+      } else {
+        if (text.written > 0)
+          flush_text_to_token(&text, &token_arr, state_to_token_type[state]);
+        write_ch(&text, ch);
+        state = IN_PIPE;
+      }
       break;
 
     default:
-      if (state == IN_QOUTE) {
+      if (state == IN_QUOTE) {
         write_ch(&text, ch);
       } else {
-        state = IN_WORD;
+        if (state != NORMAL && state != IN_WORD && text.written > 0)
+          flush_text_to_token(&text, &token_arr, state_to_token_type[state]);
         write_ch(&text, ch);
+        state = IN_WORD;
       }
       break;
     }

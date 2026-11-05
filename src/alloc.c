@@ -101,8 +101,35 @@ void print_token_array(const TokenArray *arr) {
     case TOKEN_QUOTED:
       type_str = "TOKEN_QUOTED";
       break;
-    case TOKEN_OPERATOR:
-      type_str = "TOKEN_OPERATOR";
+    case TOKEN_GREATER_THAN:
+      type_str = "TOKEN_GREATER_THAN";
+      break;
+    case TOKEN_APPEND:
+      type_str = "TOKEN_APPEND";
+      break;
+    case TOKEN_LESS_THAN:
+      type_str = "TOKEN_LESS_THAN";
+      break;
+    case TOKEN_HEREDOC:
+      type_str = "TOKEN_HEREDOC";
+      break;
+    case TOKEN_PIPE:
+      type_str = "TOKEN_PIPE";
+      break;
+    case TOKEN_OR:
+      type_str = "TOKEN_OR";
+      break;
+    case TOKEN_AMPERSAND:
+      type_str = "TOKEN_AMPERSAND";
+      break;
+    case TOKEN_AND:
+      type_str = "TOKEN_AND";
+      break;
+    case TOKEN_SEMICOLON:
+      type_str = "TOKEN_SEMICOLON";
+      break;
+    case TOKEN_DOUBLE_SEMICOLON:
+      type_str = "TOKEN_DOUBLE_SEMICOLON";
       break;
     default:
       type_str = "UNKNOWN";

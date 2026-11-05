@@ -2,19 +2,24 @@
 #include "exec.h"
 #include "lexer.h"
 #include "line.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#define TEST
 
 void ashx_loop(void) {
   GetLineOut input;
   TokenizeOut tokenized;
   char **args;
-  int status, i;
+  int status;
+  size_t i;
 
   do {
     printf("$ ");
     input = ashx_readline();
     tokenized = tokenize(input);
+
     args = malloc(sizeof(char *) * (tokenized.token_arr.size + 1));
     if (!args) {
       fprintf(stderr, "ashx: allocation failed\n");
@@ -25,7 +30,12 @@ void ashx_loop(void) {
       args[i] = tokenized.token_arr.tokens[i].str_repr;
     }
     args[i] = NULL;
+
+#ifndef TEST
     status = ashx_execute(args);
+#else
+    status = 1;
+#endif
 
     arr_destroy(&(tokenized.token_arr));
     free(input.line);
