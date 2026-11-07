@@ -101,6 +101,9 @@ void print_token_array(const TokenArray *arr) {
     case TOKEN_QUOTED:
       type_str = "TOKEN_QUOTED";
       break;
+    case TOKEN_NEWLINE:
+      type_str = "TOKEN_NEWLINE";
+      break;
     case TOKEN_GREATER_THAN:
       type_str = "TOKEN_GREATER_THAN";
       break;
@@ -109,9 +112,6 @@ void print_token_array(const TokenArray *arr) {
       break;
     case TOKEN_LESS_THAN:
       type_str = "TOKEN_LESS_THAN";
-      break;
-    case TOKEN_HEREDOC:
-      type_str = "TOKEN_HEREDOC";
       break;
     case TOKEN_PIPE:
       type_str = "TOKEN_PIPE";
@@ -128,15 +128,16 @@ void print_token_array(const TokenArray *arr) {
     case TOKEN_SEMICOLON:
       type_str = "TOKEN_SEMICOLON";
       break;
-    case TOKEN_DOUBLE_SEMICOLON:
-      type_str = "TOKEN_DOUBLE_SEMICOLON";
-      break;
     default:
       type_str = "UNKNOWN";
       break;
     }
-
-    printf("  [%u] str_repr: \"%s\" | str_offset: %u | type: %s\n", i,
-           t.str_repr ? t.str_repr : "(null)", t.str_offset, type_str);
+    if (t.type == TOKEN_NEWLINE) {
+      printf("  [%u] str_repr: \"\\n\" | str_offset: %u | type: %s\n", i,
+             t.str_offset, type_str);
+    } else {
+      printf("  [%u] str_repr: \"%s\" | str_offset: %u | type: %s\n", i,
+             t.str_repr ? t.str_repr : "(null)", t.str_offset, type_str);
+    }
   }
 }

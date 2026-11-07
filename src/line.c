@@ -19,7 +19,6 @@ GetLineOut ashx_readline(void) {
       exit(EXIT_FAILURE);
     }
   }
-
   out.line = line;
   out.len = strlen(line);
   return out;
