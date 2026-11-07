@@ -6,6 +6,10 @@ for my first big c project (not really big though).
 Inspired by <https://github.com/dot-underscore1703/dustbunny>
 
 ## Build
-just run `make` in the repo root 
+```bash
+make
+```
 
-and `clean` to remove the generated build/ dir and target binary
+## Requirements
+
+A GNU C compiler that supports GNU11 or later, and a POSIX/Linux environment.

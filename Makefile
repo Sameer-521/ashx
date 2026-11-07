@@ -1,5 +1,5 @@
 CC     := gcc
-CFLAGS := -Wall -Wextra -g -Isrc -Iinclude -I. -MMD -MP
+CFLAGS := -Wall -Wextra -g -std=gnu11 -Isrc -Iinclude -I. -MMD -MP
 TARGET := ashx-bin
 OBJS   := $(addprefix build/, alloc.o line.o builtins.o lexer.o exec.o main.o)
 
