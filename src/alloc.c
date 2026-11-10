@@ -128,6 +128,12 @@ void print_token_array(const TokenArray *arr) {
     case TOKEN_SEMICOLON:
       type_str = "TOKEN_SEMICOLON";
       break;
+    case TOKEN_STDERR_REDIRECTION:
+      type_str = "TOKEN_STDERR_REDIRECTION";
+      break;
+    case TOKEN_STDERR_TO_1_REDIRECTION:
+      type_str = "TOKEN_STDERR_TO_1_REDIRECTION";
+      break;
     default:
       type_str = "UNKNOWN";
       break;

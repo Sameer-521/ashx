@@ -193,9 +193,40 @@ TokenizeOut tokenize(GetLineOut input) {
       }
       break;
 
-      // case '0-9':
-      //   // stderr redirection logic
-      //   break;
+    case '2':
+
+      if (state == IN_QUOTE || state == IN_WORD) {
+        write_ch(&text, ch);
+      } else if (state == NORMAL && position != 0) {
+
+        if (((position + 3) < input.len) && input.line[position + 1] == '>' &&
+            input.line[position + 2] == '&' &&
+            input.line[position + 3] == '1') {
+
+          write_ch(&text, ch);
+          write_ch(&text, '>');
+          write_ch(&text, '&');
+          write_ch(&text, '1');
+          position += 3;
+          // ch = '1'
+          flush_text_to_token(&text, &token_arr, TOKEN_STDERR_TO_1_REDIRECTION);
+          state = NORMAL;
+        } else if (((position + 1) < input.len) &&
+                   input.line[position + 1] == '>') {
+
+          write_ch(&text, ch);
+          write_ch(&text, '>');
+          position++;
+          // ch = '>'
+          flush_text_to_token(&text, &token_arr, TOKEN_STDERR_REDIRECTION);
+          state = NORMAL;
+        }
+      } else {
+        emit_if_needed(&text, &token_arr, state);
+        write_ch(&text, ch);
+        state = IN_WORD;
+      }
+      break;
 
     default:
       if (state == IN_QUOTE) {
