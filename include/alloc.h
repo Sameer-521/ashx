@@ -6,25 +6,25 @@
 #include <stdbool.h>
 #include "token.h"
 
-#define ARENA_BLOCK_SIZE 256
-#define ARENA_RESIZE_FACTOR 2
+#define CHAR_ARENA_BLOCK_SIZE 256
+#define CHAR_ARENA_RESIZE_FACTOR 2
 
-// arena forward declarations and types
-typedef struct arena {
+// char_arena forward declarations and types
+typedef struct {
   char *data;
   size_t size;
   size_t used;
-} Arena;
+} CharArena;
 
-Arena arena_create(size_t size);
+CharArena char_arena_create(size_t size);
 
-int arena_write(Arena *arena, char ch);
+int char_arena_write(CharArena *arena, char ch);
 
-void arena_destroy(Arena *arena);
+void char_arena_destroy(CharArena *arena);
 
 
 // token array forward declarations and types
-typedef struct token_array {
+typedef struct {
   Token *tokens;
   size_t size;
   size_t cap;

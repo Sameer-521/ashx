@@ -10,7 +10,7 @@
 // FEATURE: add logic to recognize redirections
 
 typedef struct {
-  Arena arena;
+  CharArena arena;
   size_t written;
 } TextBuffer;
 
@@ -45,7 +45,7 @@ static const TokenType state_to_token_type[] = {
 };
 
 static int write_ch(TextBuffer *t, char ch) {
-  if (arena_write(&(t->arena), ch) == 0) {
+  if (char_arena_write(&(t->arena), ch) == 0) {
     t->written++;
     return 0;
   }
@@ -89,7 +89,7 @@ TokenizeOut tokenize(GetLineOut input) {
   }
   token_arr = arr_out.arr;
 
-  text.arena = arena_create(ARENA_BLOCK_SIZE);
+  text.arena = char_arena_create(CHAR_ARENA_BLOCK_SIZE);
   if (!text.arena.data) {
     fprintf(stderr, "ashx: could not initialize arena\n");
     return out;

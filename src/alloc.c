@@ -6,9 +6,9 @@
 // TODO: add better error handling AND fix bugs!
 
 // ARENA
-Arena arena_create(size_t size) {
+CharArena char_arena_create(size_t size) {
   char *tmp;
-  Arena arena = {0};
+  CharArena arena = {0};
 
   tmp = malloc(size * sizeof(char));
   if (tmp == NULL) {
@@ -23,26 +23,26 @@ Arena arena_create(size_t size) {
   return arena;
 }
 
-int arena_write(Arena *arena, char ch) {
+int char_arena_write(CharArena *arena, char ch) {
   char *tmp;
 
   if (arena->used + sizeof(char) > arena->size) {
     // fprintf(stderr, "ashx: arena full\n");
-    tmp = realloc(arena->data, arena->size * ARENA_RESIZE_FACTOR);
+    tmp = realloc(arena->data, arena->size * CHAR_ARENA_RESIZE_FACTOR);
     if (!tmp) {
       fprintf(stderr, "ashx: allocation failed\n");
       return 1;
     }
 
     arena->data = tmp;
-    arena->size *= ARENA_RESIZE_FACTOR;
+    arena->size *= CHAR_ARENA_RESIZE_FACTOR;
   }
 
   arena->data[arena->used++] = ch;
   return 0;
 }
 
-void arena_destroy(Arena *arena) { free(arena->data); }
+void char_arena_destroy(CharArena *arena) { free(arena->data); }
 
 // TOKEN_ARRAY IMPLEMENTATIONS
 TokenArrayOut arr_create(size_t cap) {
