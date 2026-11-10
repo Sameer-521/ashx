@@ -8,8 +8,11 @@
 
 typedef struct {
   char **argv;
-  char *infile;
-  char *outfile;
+  char *infile; // read input from file
+  char *outfile; // stdout -> file
+  char *err_outfile;
+  bool out_append; // dont overwrite contents of file?
+  bool err_out_append;
 } Cmd;
 
 typedef struct {

@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// TODO: add better error handling AND fix bugs!
+
 // ARENA
 Arena arena_create(size_t size) {
   char *tmp;

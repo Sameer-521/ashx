@@ -13,16 +13,24 @@
 
 // TODO: handle redirection parsing
 
-typedef enum { REDIRECT_IN, REDIRECT_OUT } RedirectDirection;
+typedef enum {
+  REDIRECT_IN,
+  REDIRECT_OUT,
+  REDIRECT_ERR_OUT,
+  REDIRECT_ERR_TO_1,
+} RedirectType;
 
 static PipelineOut parse_pipeline(TokenArray *arr, size_t *position);
 
 static CmdOut parse_command(TokenArray *arr, size_t *position);
 
-static void cmdlist_debug_print(const CmdList *list, FILE *out);
-
 static ParserError parse_redirect(TokenArray *arr, size_t *position,
-                                  int direction, Cmd *cmd);
+                                  TokenType type, Cmd *cmd);
+
+ParserError consume_filename(TokenArray *arr, size_t *position,
+                             char **filename);
+
+static void cmdlist_debug_print(const CmdList *list, FILE *out);
 
 static TokenType peek(TokenArray *arr, size_t index) {
   return arr->tokens[index].type;
@@ -132,17 +140,14 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
 
   while ((tok_type = peek(arr, *position)) == TOKEN_WORD ||
          tok_type == TOKEN_QUOTED || tok_type == TOKEN_GREATER_THAN ||
-         tok_type == TOKEN_LESS_THAN) {
-    if (tok_type == TOKEN_GREATER_THAN) {
+         tok_type == TOKEN_LESS_THAN || tok_type == TOKEN_STDERR_REDIRECTION ||
+         tok_type == TOKEN_STDERR_TO_1_REDIRECTION) {
+
+    if (tok_type == TOKEN_GREATER_THAN || tok_type == TOKEN_LESS_THAN ||
+        tok_type == TOKEN_STDERR_REDIRECTION ||
+        tok_type == TOKEN_STDERR_TO_1_REDIRECTION) {
       advance(position);
-      err = parse_redirect(arr, position, REDIRECT_OUT, &(out.cmd));
-      if (err.had_error) {
-        out.error = err;
-        return out;
-      }
-    } else if (tok_type == TOKEN_LESS_THAN) {
-      advance(position);
-      err = parse_redirect(arr, position, REDIRECT_IN, &(out.cmd));
+      err = parse_redirect(arr, position, tok_type, &(out.cmd));
       if (err.had_error) {
         out.error = err;
         return out;
@@ -158,37 +163,67 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
 }
 
 static ParserError parse_redirect(TokenArray *arr, size_t *position,
-                                  int direction, Cmd *cmd) {
+                                  TokenType type, Cmd *cmd) {
+  ParserError err = {0};
+  RedirectType redirect;
+  char *filename;
+
+  static const RedirectType token_to_redirect[] = {
+      [TOKEN_GREATER_THAN] = REDIRECT_OUT,
+      [TOKEN_LESS_THAN] = REDIRECT_IN,
+      [TOKEN_STDERR_REDIRECTION] = REDIRECT_ERR_OUT,
+      [TOKEN_STDERR_TO_1_REDIRECTION] = REDIRECT_ERR_TO_1,
+  };
+
+  redirect = token_to_redirect[type];
+  switch (redirect) {
+  case REDIRECT_IN:
+    err = consume_filename(arr, position, &filename);
+    if (err.had_error)
+      return err;
+    cmd->infile = filename;
+    break;
+  case REDIRECT_OUT:
+    err = consume_filename(arr, position, &filename);
+    if (err.had_error)
+      return err;
+    cmd->outfile = filename;
+    break;
+  case REDIRECT_ERR_OUT:
+    err = consume_filename(arr, position, &filename);
+    if (err.had_error)
+      return err;
+    cmd->err_outfile = filename;
+    break;
+  case REDIRECT_ERR_TO_1:
+    cmd->err_outfile = cmd->outfile;
+    break;
+  default:
+    // invalid direction for now
+    // TODO: CHANGE THIS LATER
+    set_error(arr->tokens[*position].type,
+              *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
+              TOKEN_FILENAME, &err, PARSER_INTERNAL_ERROR);
+    return err;
+  }
+
+  return err;
+}
+
+ParserError consume_filename(TokenArray *arr, size_t *position,
+                             char **filename) {
   ParserError err = {0};
   TokenType tok_type;
-  char *filename;
 
   if ((tok_type = peek(arr, *position)) == TOKEN_WORD ||
       tok_type == TOKEN_QUOTED) {
 
-    // TODO: add better filename validation
-    filename = arr->tokens[*position].str_repr;
-    if (strlen(filename) == 0) {
+    *filename = arr->tokens[*position].str_repr;
+    if (strlen(*filename) == 0) {
       // invalid redirection target
       set_error(arr->tokens[*position].type,
                 *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
                 TOKEN_FILENAME, &err, PARSER_INVALID_FILENAME);
-      return err;
-    }
-
-    switch (direction) {
-    case REDIRECT_IN:
-      cmd->infile = filename;
-      break;
-    case REDIRECT_OUT:
-      cmd->outfile = filename;
-      break;
-    default:
-      // invalid direction for now
-      // TODO: CHANGE THIS LATER
-      set_error(arr->tokens[*position].type,
-                *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
-                TOKEN_FILENAME, &err, PARSER_INTERNAL_ERROR);
       return err;
     }
 
@@ -251,6 +286,8 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
 
       fprintf(out, "      infile:  %s\n", c->infile ? c->infile : "(none)");
       fprintf(out, "      outfile: %s\n", c->outfile ? c->outfile : "(none)");
+      fprintf(out, "      err_outfile: %s\n",
+              c->err_outfile ? c->err_outfile : "(none)");
     }
   }
 }
