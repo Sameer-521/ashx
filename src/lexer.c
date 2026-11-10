@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <stdio.h>
 
+// TODO add position field in Token struct to track
+//  orginal column index of token
+
 typedef struct {
   Arena arena;
   size_t written;
@@ -64,7 +67,6 @@ static int flush_text_to_token(TextBuffer *t, TokenArray *arr, TokenType type) {
   return 0;
 }
 
-// Helpers
 static int emit_if_needed(TextBuffer *t, TokenArray *arr,
                           TokenizerState state) {
   if (state == NORMAL || t->written == 0)

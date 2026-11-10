@@ -15,6 +15,7 @@ typedef enum {
     TOKEN_AMPERSAND,       // '&'
     TOKEN_AND,             // '&&'
     TOKEN_SEMICOLON,       // ';'
+    TOKEN_NONE, // sentinel value, has no meaning
 } TokenType;
 
 
