@@ -22,10 +22,9 @@ void ashx_loop(void) {
     input = ashx_readline();
     tokenized = tokenize(input);
     list_out = parse_tokens(&(tokenized.token_arr));
-    if (list_out.error.had_error) {
-      printf("ashx syntax error: expected %d found %d\n",
-             list_out.error.expected, list_out.error.cur_token);
-    }
+    if (list_out.error.had_error)
+      parser_print_error(&(list_out.error));
+
     args = malloc(sizeof(char *) * (tokenized.token_arr.size + 1));
     if (!args) {
       fprintf(stderr, "ashx: allocation failed\n");

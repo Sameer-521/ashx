@@ -7,6 +7,7 @@
 
 // TODO add position field in Token struct to track
 //  orginal column index of token
+// FEATURE: add logic to recognize redirections
 
 typedef struct {
   Arena arena;
@@ -192,6 +193,10 @@ TokenizeOut tokenize(GetLineOut input) {
       }
       break;
 
+      // case '0-9':
+      //   // stderr redirection logic
+      //   break;
+
     default:
       if (state == IN_QUOTE) {
         write_ch(&text, ch);
@@ -211,7 +216,8 @@ TokenizeOut tokenize(GetLineOut input) {
     ch = input.line[++position];
   }
 
-  // EOF flush, this isnt needed for interactive mode though
+  // emit final token in case newline was consumed by
+  // unterminated quotes
   emit_if_needed(&text, &token_arr, state);
 
   // compute str_view ptrs

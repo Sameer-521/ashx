@@ -15,7 +15,9 @@ typedef enum {
     TOKEN_AMPERSAND,       // '&'
     TOKEN_AND,             // '&&'
     TOKEN_SEMICOLON,       // ';'
+    // used by parser
     TOKEN_NONE, // sentinel value, has no meaning
+    TOKEN_FILENAME,
 } TokenType;
 
 

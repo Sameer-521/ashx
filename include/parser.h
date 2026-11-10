@@ -13,11 +13,6 @@ typedef struct {
 } Cmd;
 
 typedef struct {
-  bool had_error;
-  TokenType prev_token, cur_token, expected;
-} ParserError;
-
-typedef struct {
   Cmd *cmds;
   size_t ncmds;
 } Pipeline;
@@ -26,6 +21,18 @@ typedef struct {
   Pipeline *pipelines;
   size_t n;
 } CmdList;
+
+typedef enum {
+  PARSER_UNEXPECTED_TOKEN,
+  PARSER_INVALID_FILENAME,
+  PARSER_INTERNAL_ERROR
+} ErrorType;
+
+typedef struct {
+  bool had_error;
+  TokenType prev_token, cur_token, expected;
+  ErrorType error_type;
+} ParserError;
 
 typedef struct {
   Cmd cmd;
@@ -46,10 +53,8 @@ typedef struct {
 
 CmdListOut parse_tokens(TokenArray *arr); 
 
-PipelineOut parse_pipeline(TokenArray *arr, size_t *position);
-
-CmdOut parse_command(TokenArray *arr, size_t *position);
-
 void parser_free_list(CmdList *list);
+
+void parser_print_error(const ParserError *err);
 
 #endif
