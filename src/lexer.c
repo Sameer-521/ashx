@@ -10,7 +10,7 @@
 // FEATURE: add logic to recognize redirections
 
 typedef struct {
-  CharArena arena;
+  CharArena *arena;
   size_t written;
 } TextBuffer;
 
@@ -45,7 +45,7 @@ static const TokenType state_to_token_type[] = {
 };
 
 static int write_ch(TextBuffer *t, char ch) {
-  if (char_arena_write(&(t->arena), ch) == 0) {
+  if (char_arena_write(t->arena, ch) == 0) {
     t->written++;
     return 0;
   }
@@ -57,7 +57,7 @@ static int flush_text_to_token(TextBuffer *t, TokenArray *arr, TokenType type) {
     return 0;
 
   write_ch(t, '\0');
-  size_t offset = t->arena.used - t->written;
+  size_t offset = t->arena->used - t->written;
   t->written = 0;
 
   Token new = {.str_repr = NULL, .str_offset = offset, .type = type};
@@ -75,25 +75,24 @@ static int emit_if_needed(TextBuffer *t, TokenArray *arr,
   return flush_text_to_token(t, arr, state_to_token_type[state]);
 }
 
-TokenizeOut tokenize(GetLineOut input) {
+TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
   TextBuffer text = {0};
   TokenizeOut out = {0};
   TokenizerState state = NORMAL;
 
+  if (!arena) {
+    fprintf(stderr, "ashx: arena not initialized\n");
+    return out;
+  }
+  text.arena = arena;
+
   TokenArray token_arr;
   TokenArrayOut arr_out = arr_create(DEFAULT_NUM_TOKENS);
-
   if (arr_out.status != SUCCESS) {
     fprintf(stderr, "ashx: could not initialize tokens array\n");
     return out;
   }
   token_arr = arr_out.arr;
-
-  text.arena = char_arena_create(CHAR_ARENA_BLOCK_SIZE);
-  if (!text.arena.data) {
-    fprintf(stderr, "ashx: could not initialize arena\n");
-    return out;
-  }
 
   size_t position = 0;
   char ch = input.line[position];
@@ -255,11 +254,11 @@ TokenizeOut tokenize(GetLineOut input) {
   Token *tok;
   for (size_t i = 0; i < token_arr.size; i++) {
     tok = &(token_arr.tokens[i]);
-    tok->str_repr = text.arena.data + tok->str_offset;
+    tok->str_repr = text.arena->data + tok->str_offset;
   }
 
   out.token_arr = token_arr;
-  out.data = text.arena.data;
+  out.success = true;
 
   print_token_array(&token_arr);
 

@@ -6,27 +6,26 @@
 // TODO: add better error handling AND fix bugs!
 
 // ARENA
-CharArena char_arena_create(size_t size) {
+CharArenaCreateOut char_arena_create(size_t size) {
   char *tmp;
-  CharArena arena = {0};
+  CharArenaCreateOut out = {};
 
   tmp = malloc(size * sizeof(char));
-  if (tmp == NULL) {
-    fprintf(stderr, "ashx: allocation error\n");
-    exit(EXIT_FAILURE);
-  }
+  if (tmp == NULL)
+    return out;
 
-  arena.data = tmp;
-  arena.size = size;
-  arena.used = 0;
+  out.arena.data = tmp;
+  out.arena.size = size;
+  out.arena.used = 0;
+  out.success = true;
 
-  return arena;
+  return out;
 }
 
 int char_arena_write(CharArena *arena, char ch) {
   char *tmp;
 
-  if (arena->used + sizeof(char) > arena->size) {
+  if (arena->used + 1 > arena->size) {
     // fprintf(stderr, "ashx: arena full\n");
     tmp = realloc(arena->data, arena->size * CHAR_ARENA_RESIZE_FACTOR);
     if (!tmp) {
@@ -43,6 +42,22 @@ int char_arena_write(CharArena *arena, char ch) {
 }
 
 void char_arena_destroy(CharArena *arena) { free(arena->data); }
+
+bool char_arena_reset(CharArena *arena, bool resize_default) {
+  char *tmp;
+
+  if (resize_default && arena->size > CHAR_ARENA_BLOCK_SIZE) {
+    tmp = realloc(arena->data, CHAR_ARENA_BLOCK_SIZE);
+    if (!tmp) {
+      fprintf(stderr, "ashx: arena resize failed\n");
+      return false;
+    }
+    arena->size = CHAR_ARENA_BLOCK_SIZE;
+  }
+
+  arena->used = 0;
+  return true;
+}
 
 // TOKEN_ARRAY IMPLEMENTATIONS
 TokenArrayOut arr_create(size_t cap) {

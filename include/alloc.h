@@ -16,12 +16,18 @@ typedef struct {
   size_t used;
 } CharArena;
 
-CharArena char_arena_create(size_t size);
+typedef struct {
+  bool success;
+  CharArena arena;
+} CharArenaCreateOut;
+
+CharArenaCreateOut char_arena_create(size_t size);
 
 int char_arena_write(CharArena *arena, char ch);
 
 void char_arena_destroy(CharArena *arena);
 
+bool char_arena_reset(CharArena *arena, bool resize_default);
 
 // token array forward declarations and types
 typedef struct {

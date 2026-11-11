@@ -1,5 +1,5 @@
 #include "alloc.h"
-#include "exec.h"
+// #include "exec.h"
 #include "lexer.h"
 #include "line.h"
 #include "parser.h"
@@ -7,47 +7,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST
-
 void ashx_loop(void) {
   GetLineOut input;
   TokenizeOut tokenized;
   CmdListOut list_out;
-  char **args;
-  int status;
-  size_t i;
+
+  CharArenaCreateOut char_arena_out = char_arena_create(CHAR_ARENA_BLOCK_SIZE);
+  if (!char_arena_out.success) {
+    fprintf(stderr, "fatal: arena allocation failed\n");
+    exit(EXIT_FAILURE);
+  }
 
   do {
     printf("$ ");
     input = ashx_readline();
-    tokenized = tokenize(input);
+
+    tokenized = tokenize(input, &(char_arena_out.arena));
+    if (!tokenized.success) {
+      fprintf(stderr, "fatal: failed to tokenize input\n");
+      exit(EXIT_FAILURE);
+    }
+
     list_out = parse_tokens(&(tokenized.token_arr));
     if (list_out.error.had_error)
       parser_print_error(&(list_out.error));
 
-    args = malloc(sizeof(char *) * (tokenized.token_arr.size + 1));
-    if (!args) {
-      fprintf(stderr, "ashx: allocation failed\n");
-      exit(EXIT_FAILURE);
-    }
-
-    for (i = 0; i < tokenized.token_arr.size; i++) {
-      args[i] = tokenized.token_arr.tokens[i].str_repr;
-    }
-    args[i] = NULL;
-
-#ifndef TEST
-    status = ashx_execute(args);
-#else
-    status = 1;
-#endif
+    // LET DESTRUCTION RAIN!
+    free(input.line);
     if (!list_out.error.had_error)
       parser_free_list(&(list_out.cmd_list));
+
     arr_destroy(&(tokenized.token_arr));
-    free(input.line);
-    free(tokenized.data);
-    free(args);
-  } while (status);
+    char_arena_reset(&(char_arena_out.arena), true);
+  } while (1);
 }
 
 int main(int argc, char *argv[]) {
