@@ -10,6 +10,8 @@
 void ashx_loop(void) {
   GetLineOut input;
   TokenizeOut tokenized;
+  Arena arena;
+  CharArena char_arena;
   CmdListOut list_out;
 
   CharArenaCreateOut char_arena_out = char_arena_create(CHAR_ARENA_BLOCK_SIZE);
@@ -17,12 +19,20 @@ void ashx_loop(void) {
     fprintf(stderr, "fatal: arena allocation failed\n");
     exit(EXIT_FAILURE);
   }
+  char_arena = char_arena_out.arena;
+
+  ArenaCreateOut arena_out = arena_create(ARENA_BLOCK_SIZE);
+  if (!arena_out.success) {
+    fprintf(stderr, "fatal: arena allocation failed\n");
+    exit(EXIT_FAILURE);
+  }
+  arena = arena_out.arena;
 
   do {
     printf("$ ");
     input = ashx_readline();
 
-    tokenized = tokenize(input, &(char_arena_out.arena));
+    tokenized = tokenize(input, &char_arena);
     if (!tokenized.success) {
       fprintf(stderr, "fatal: failed to tokenize input\n");
       exit(EXIT_FAILURE);
@@ -38,7 +48,8 @@ void ashx_loop(void) {
       parser_free_list(&(list_out.cmd_list));
 
     arr_destroy(&(tokenized.token_arr));
-    char_arena_reset(&(char_arena_out.arena), true);
+    char_arena_reset(&char_arena, true);
+    arena_reset(&arena, true);
   } while (1);
 }
 
