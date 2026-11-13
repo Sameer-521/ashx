@@ -55,22 +55,29 @@ static void init_arrays(Arena *arena, CmdList *list,
                         ParserPreCountOut *nsizes) {
   ArenaAllocOut alloc_out;
   size_t offsets[2];
+  size_t new_size;
 
   alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
   if (!alloc_out.success) {
-    if (arena_grow(arena, arena->size * 2) == ARENA_NO_MEM) {
+    new_size = arena->size * 2;
+
+    if (arena_grow(arena, new_size) == ARENA_NO_MEM) {
       fprintf(stderr, "fatal: arena realloc failed\n");
       exit(EXIT_FAILURE);
     }
+    alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
   }
   offsets[0] = alloc_out.offset;
 
   alloc_out = arena_alloc(arena, sizeof(Cmd) * nsizes->ncmds);
   if (!alloc_out.success) {
-    if (arena_grow(arena, arena->size * 2) == ARENA_NO_MEM) {
+    new_size = arena->size * 2;
+
+    if (arena_grow(arena, new_size) == ARENA_NO_MEM) {
       fprintf(stderr, "fatal: arena realloc failed\n");
       exit(EXIT_FAILURE);
     }
+    alloc_out = arena_alloc(arena, sizeof(Cmd) * nsizes->ncmds);
   }
 
   list->pipelines = (Pipeline *)arena->data + offsets[0];
