@@ -8,7 +8,7 @@
 // ARENA
 CharArenaCreateOut char_arena_create(size_t size) {
   char *tmp;
-  CharArenaCreateOut out = {};
+  CharArenaCreateOut out = {0};
 
   tmp = malloc(size * sizeof(char));
   if (tmp == NULL)
@@ -163,4 +163,110 @@ void print_token_array(const TokenArray *arr) {
              t.str_repr ? t.str_repr : "(null)", t.str_offset, type_str);
     }
   }
+}
+
+// ARENA IMPLEMENTATIONS
+// great guide btw https://eliasebner.com/blog/guides/arena-allocators-in-c/
+//
+ArenaCreateOut arena_create(size_t size) {
+  ArenaCreateOut out = {0};
+
+  out.arena.data = malloc(size);
+  if (out.arena.data == NULL)
+    return out;
+
+  out.arena.size = size;
+  out.arena.used = 0;
+  out.success = true;
+
+  return out;
+}
+
+ArenaAllocOut arena_alloc(Arena *arena, size_t size) {
+  ArenaAllocOut out = {0};
+  size_t alignment;
+
+  if (!arena || !arena->data) {
+    fprintf(stderr, "fatal: arena not initialized\n");
+    exit(EXIT_FAILURE);
+  }
+
+  alignment = (ARENA_ALIGN - (arena->used % ARENA_ALIGN)) % ARENA_ALIGN;
+  // so each allocation starts at current addr + alignment? noiiice!
+
+  out.ptr = (char *)arena->data + arena->used + alignment;
+  out.offset = arena->used + alignment;
+  if (out.offset + size > arena->size) {
+    return out;
+  }
+
+  arena->used += size + alignment;
+  out.success = true;
+
+  return out;
+}
+
+ArenaStatus arena_grow(Arena *arena, size_t size) {
+  void *tmp;
+
+  if (!arena || !arena->data) {
+    fprintf(stderr, "fatal: arena not initialized\n");
+    exit(EXIT_FAILURE);
+  }
+
+  tmp = realloc(arena->data, arena->size);
+  if (!tmp) {
+    return ARENA_NO_MEM;
+  }
+
+  arena->data = tmp;
+  arena->size = size;
+
+  return ARENA_SUCCESS;
+}
+
+ArenaStatus arena_write(Arena *arena, void *src, size_t size) {
+  ArenaAllocOut alloc_out;
+
+  if (!arena || !arena->data) {
+    fprintf(stderr, "fatal: arena not initialized\n");
+    exit(EXIT_FAILURE);
+  }
+
+  alloc_out = arena_alloc(arena, size);
+  if (!alloc_out.success) {
+    if (arena_grow(arena, arena->size * ARENA_RESIZE_FACTOR) != ARENA_SUCCESS) {
+      fprintf(stderr, "fatal: arena realloc failed\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  memcpy(alloc_out.ptr, src, size);
+
+  return ARENA_SUCCESS;
+}
+
+void arena_clear(Arena *arena) { arena->used = 0; }
+
+void arena_destroy(Arena *arena) {
+  free(arena->data);
+  arena->data = NULL;
+  arena->size = 0;
+  arena->used = 0;
+}
+
+bool arena_reset(Arena *arena, bool resize_default) {
+  void *tmp;
+
+  if (resize_default && arena->size > ARENA_BLOCK_SIZE) {
+    tmp = realloc(arena->data, CHAR_ARENA_BLOCK_SIZE);
+    if (!tmp) {
+      fprintf(stderr, "ashx: arena resize failed\n");
+      return false;
+    }
+    arena->size = ARENA_BLOCK_SIZE;
+  }
+
+  arena->used = 0;
+  return true;
 }

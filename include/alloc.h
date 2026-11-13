@@ -56,4 +56,46 @@ void arr_destroy(TokenArray *arr);
 
 void print_token_array(const TokenArray *arr);
 
+// Genric-Arena forward declarations and types
+#define ARENA_ALIGN 8
+#define ARENA_BLOCK_SIZE 256
+#define ARENA_RESIZE_FACTOR 2
+
+typedef struct {
+  void *data;
+  size_t used;
+  size_t size;
+} Arena;
+
+typedef struct {
+  bool success;
+  Arena arena;
+} ArenaCreateOut;
+
+typedef struct {
+  bool success;
+  void *ptr;
+  size_t offset;
+} ArenaAllocOut;
+
+typedef enum {
+  ARENA_SUCCESS,
+  ARENA_FAILED,
+  ARENA_NO_MEM,
+} ArenaStatus;
+
+ArenaCreateOut arena_create(size_t size);
+
+ArenaAllocOut arena_alloc(Arena *arena, size_t size);
+
+ArenaStatus arena_grow(Arena *arena, size_t size);
+
+ArenaStatus arena_write(Arena *arena, void *src, size_t size);
+
+void arena_clear(Arena *arena);
+
+void arena_destroy(Arena *arena);
+
+bool arena_reset(Arena *arena, bool resize_default);
+
 #endif
