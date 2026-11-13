@@ -22,7 +22,9 @@ typedef struct {
 
 typedef struct {
   Pipeline *pipelines;
-  size_t n;
+  size_t npls; // num of pipelines
+  Cmd *cmds;
+  size_t ncmds;
 } CmdList;
 
 typedef enum {
@@ -53,10 +55,14 @@ typedef struct {
   ParserError error;
 } CmdListOut;
 
+typedef struct {
+  size_t npls;
+  size_t ncmds;
+} ParserPreCountOut;
+  
+CmdListOut parse_tokens(TokenArray *arr, Arena *arena); 
 
-CmdListOut parse_tokens(TokenArray *arr); 
-
-void parser_free_list(CmdList *list);
+void parser_free_argv(CmdList *list);
 
 void parser_print_error(const ParserError *err);
 

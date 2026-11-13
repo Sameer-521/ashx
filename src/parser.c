@@ -20,23 +20,26 @@ typedef enum {
   REDIRECT_ERR_TO_1,
 } RedirectType;
 
-static PipelineOut parse_pipeline(TokenArray *arr, size_t *position);
+static PipelineOut parse_pipeline(TokenArray *arr, size_t *position,
+                                  CmdList *list);
 
 static CmdOut parse_command(TokenArray *arr, size_t *position);
 
 static ParserError parse_redirect(TokenArray *arr, size_t *position,
                                   TokenType type, Cmd *cmd);
 
+ParserPreCountOut parser_precount_cmdlist(const TokenArray *arr);
+
 ParserError consume_filename(TokenArray *arr, size_t *position,
                              char **filename);
 
 static void cmdlist_debug_print(const CmdList *list, FILE *out);
 
+static void advance(size_t *index) { (*index)++; }
+
 static TokenType peek(TokenArray *arr, size_t index) {
   return arr->tokens[index].type;
 }
-
-static void advance(size_t *index) { (*index)++; }
 
 static void set_error(TokenType cur, TokenType prev, TokenType expected,
                       ParserError *err, ErrorType error_type) {
@@ -47,24 +50,54 @@ static void set_error(TokenType cur, TokenType prev, TokenType expected,
   err->error_type = error_type;
 }
 
+// TODO: CLEANUP THIS
+static void init_arrays(Arena *arena, CmdList *list,
+                        ParserPreCountOut *nsizes) {
+  ArenaAllocOut alloc_out;
+  size_t offsets[2];
+
+  alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
+  if (!alloc_out.success) {
+    if (arena_grow(arena, arena->size * 2) == ARENA_NO_MEM) {
+      fprintf(stderr, "fatal: arena realloc failed\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  offsets[0] = alloc_out.offset;
+
+  alloc_out = arena_alloc(arena, sizeof(Cmd) * nsizes->ncmds);
+  if (!alloc_out.success) {
+    if (arena_grow(arena, arena->size * 2) == ARENA_NO_MEM) {
+      fprintf(stderr, "fatal: arena realloc failed\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  list->pipelines = (Pipeline *)arena->data + offsets[0];
+  list->cmds = (Cmd *)alloc_out.ptr;
+}
+
 // PARSER IMPLEMENTATIONS
-CmdListOut parse_tokens(TokenArray *arr) {
+CmdListOut parse_tokens(TokenArray *arr, Arena *arena) {
   CmdListOut list_out = {0};
+  CmdList cmd_list = {0};
   PipelineOut pl_out = {0};
+
+  ParserPreCountOut nsizes = parser_precount_cmdlist(arr);
+  // printf("Precount: npls: %d ncmds: %d\n", nsizes.npls, nsizes.ncmds);
+
+  init_arrays(arena, &cmd_list, &nsizes);
+
   size_t position = 0;
-
-  stbds_arrsetcap(list_out.cmd_list.pipelines, DEFAULT_PARSER_ARR_CAP);
-
   while (peek(arr, position) != TOKEN_NEWLINE) {
-    pl_out = parse_pipeline(arr, &position);
+    pl_out = parse_pipeline(arr, &position, &cmd_list);
     if (pl_out.error.had_error) {
-      stbds_arrfree(list_out.cmd_list.pipelines);
       list_out.error = pl_out.error;
       return list_out;
     }
 
-    stbds_arrput(list_out.cmd_list.pipelines, pl_out.pl);
-    list_out.cmd_list.n++;
+    cmd_list.pipelines[cmd_list.npls] = pl_out.pl;
+    cmd_list.npls++;
 
     if (peek(arr, position) == TOKEN_SEMICOLON) {
       advance(&position);
@@ -73,7 +106,6 @@ CmdListOut parse_tokens(TokenArray *arr) {
 
     if (peek(arr, position) != TOKEN_NEWLINE) {
       // ERROR
-      stbds_arrfree(list_out.cmd_list.pipelines);
       set_error(arr->tokens[position].type,
                 position == 0 ? TOKEN_NONE : arr->tokens[position - 1].type,
                 TOKEN_NEWLINE, &(list_out.error), PARSER_UNEXPECTED_TOKEN);
@@ -84,16 +116,17 @@ CmdListOut parse_tokens(TokenArray *arr) {
   // eat up the newline
   advance(&position);
 
-  cmdlist_debug_print(&(list_out.cmd_list), stderr);
+  cmdlist_debug_print(&cmd_list, stderr);
 
+  list_out.cmd_list = cmd_list;
   return list_out;
 }
 
-PipelineOut parse_pipeline(TokenArray *arr, size_t *position) {
+PipelineOut parse_pipeline(TokenArray *arr, size_t *position, CmdList *list) {
   PipelineOut pl_out = {0};
   CmdOut cmd_out;
 
-  stbds_arrsetcap(pl_out.pl.cmds, DEFAULT_PARSER_ARR_CAP);
+  pl_out.pl.cmds = &(list->cmds[list->ncmds]);
 
   for (;;) {
     cmd_out = parse_command(arr, position);
@@ -102,13 +135,13 @@ PipelineOut parse_pipeline(TokenArray *arr, size_t *position) {
       for (size_t i = 0; i < pl_out.pl.ncmds; ++i)
         stbds_arrfree(pl_out.pl.cmds[i].argv);
 
-      stbds_arrfree(pl_out.pl.cmds);
       pl_out.error = cmd_out.error;
       return pl_out;
     }
 
-    stbds_arrput(pl_out.pl.cmds, cmd_out.cmd);
+    pl_out.pl.cmds[pl_out.pl.ncmds] = cmd_out.cmd;
     pl_out.pl.ncmds++;
+    list->ncmds++;
 
     if (peek(arr, *position) == TOKEN_PIPE) {
       advance(position);
@@ -239,25 +272,42 @@ ParserError consume_filename(TokenArray *arr, size_t *position,
   return err;
 }
 
-void parser_free_list(CmdList *list) {
-  Pipeline pl;
-  char **argv;
+ParserPreCountOut parser_precount_cmdlist(const TokenArray *arr) {
+  ParserPreCountOut out = {.npls = 1, .ncmds = 1};
+  TokenType type;
 
-  for (size_t i = 0; i < list->n; ++i) {
-    pl = list->pipelines[i];
+  for (size_t i = 0; i < arr->size; i++) {
+    type = arr->tokens[i].type;
+    switch (type) {
+    case TOKEN_PIPE:
+      out.ncmds++;
+      break;
 
-    for (size_t j = 0; j < pl.ncmds; ++j) {
-      argv = pl.cmds[j].argv;
-      // printf("freeing: pl[%d].cmds[%d].argv\n", i, j);
-      stbds_arrfree(argv);
+    case TOKEN_SEMICOLON:
+    case TOKEN_AMPERSAND:
+    case TOKEN_OR:
+      out.npls++;
+      out.ncmds++;
+      break;
+
+    default:
+      break;
     }
-
-    // printf("freeing: pl[%d].cmds\n", i);
-    stbds_arrfree(pl.cmds);
   }
 
-  // printf("freeing: list.pls\n");
-  stbds_arrfree(list->pipelines);
+  return out;
+}
+
+void parser_free_argv(CmdList *list) {
+  Cmd cmd;
+  char **argv;
+
+  for (size_t i = 0; i < list->ncmds; ++i) {
+    cmd = list->cmds[i];
+    argv = cmd.argv;
+    // printf("freeing: pl[%d].cmds[%d].argv\n", i, j);
+    stbds_arrfree(argv);
+  }
 }
 
 static void cmdlist_debug_print(const CmdList *list, FILE *out) {
@@ -266,9 +316,9 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
     return;
   }
 
-  fprintf(out, "CmdList: %zu pipeline(s)\n", list->n);
+  fprintf(out, "CmdList: %zu pipeline(s)\n", list->npls);
 
-  for (size_t i = 0; i < list->n; i++) {
+  for (size_t i = 0; i < list->npls; i++) {
     const Pipeline *p = &list->pipelines[i];
     fprintf(out, "  Pipeline %zu: %zu cmd(s)\n", i, p->ncmds);
 
