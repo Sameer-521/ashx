@@ -219,9 +219,12 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
           // ch = '>'
           flush_text_to_token(&text, &token_arr, TOKEN_STDERR_REDIRECTION);
           state = NORMAL;
+        } else {
+          write_ch(&text, ch);
+          state = IN_WORD;
         }
       } else {
-        emit_if_needed(&text, &token_arr, state);
+        // position 0!
         write_ch(&text, ch);
         state = IN_WORD;
       }
