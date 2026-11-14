@@ -30,6 +30,8 @@ void char_arena_destroy(CharArena *arena);
 bool char_arena_reset(CharArena *arena, bool resize_default);
 
 // token array forward declarations and types
+#define ARR_RESIZE_FACTOR 2
+
 typedef struct {
   Token *tokens;
   size_t size;

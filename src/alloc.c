@@ -81,15 +81,16 @@ TokenArrayOut arr_create(size_t cap) {
 
 TokenArrayStatus arr_append(TokenArray *arr, Token token) {
   Token *tmp;
-  size_t old_cap = sizeof(Token) * arr->cap;
+  size_t old_cap = arr->cap;
 
   if (arr->size + 1 >= arr->cap) {
-    tmp = realloc(arr->tokens, old_cap * 2);
+    tmp = realloc(arr->tokens, old_cap * ARR_RESIZE_FACTOR * sizeof(Token));
 
     if (!tmp)
       return ARR_ERR_NO_MEM;
 
     arr->tokens = tmp;
+    arr->cap = old_cap * ARR_RESIZE_FACTOR;
   }
 
   arr->tokens[arr->size++] = token;
