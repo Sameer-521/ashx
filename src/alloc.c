@@ -215,7 +215,7 @@ ArenaStatus arena_grow(Arena *arena, size_t size) {
     exit(EXIT_FAILURE);
   }
 
-  tmp = realloc(arena->data, arena->size);
+  tmp = realloc(arena->data, size);
   if (!tmp) {
     return ARENA_NO_MEM;
   }
