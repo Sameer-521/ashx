@@ -62,6 +62,7 @@ void print_token_array(const TokenArray *arr);
 #define ARENA_ALIGN 8
 #define ARENA_BLOCK_SIZE 256
 #define ARENA_RESIZE_FACTOR 2
+#define ALIGNMENT(nbytes, align) ((align) - ((nbytes) % (align)) % (align))
 
 typedef struct {
   void *data;
@@ -99,5 +100,7 @@ void arena_clear(Arena *arena);
 void arena_destroy(Arena *arena);
 
 bool arena_reset(Arena *arena, bool resize_default);
+
+bool arena_has_space(Arena *arena, size_t bytes_to_write);
 
 #endif

@@ -50,37 +50,35 @@ static void set_error(TokenType cur, TokenType prev, TokenType expected,
   err->error_type = error_type;
 }
 
-// TODO: CLEANUP THIS
+// TODO: Enhance later
 static void init_arrays(Arena *arena, CmdList *list,
                         ParserPreCountOut *nsizes) {
   ArenaAllocOut alloc_out;
-  size_t offsets[2];
-  size_t new_size;
+  size_t total_size = 0, n;
 
-  alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
-  if (!alloc_out.success) {
-    new_size = arena->size * 2;
+  n = sizeof(Pipeline) * nsizes->npls;
+  n += ALIGNMENT(n, 8);
 
-    if (arena_grow(arena, new_size) == ARENA_NO_MEM) {
-      fprintf(stderr, "fatal: arena realloc failed\n");
+  total_size += n;
+
+  n = sizeof(Cmd) * nsizes->ncmds;
+  n += ALIGNMENT(n, 8);
+
+  total_size += n;
+
+  if (!arena_has_space(arena, total_size)) {
+    // grow to the nearest 8byte aligned size thaf can hold total_size
+    if (arena_grow(arena, total_size + ALIGNMENT(total_size, 8)) !=
+        ARENA_SUCCESS) {
+      fprintf(stderr, "ashx: fatal: arena realloc failed.\n");
       exit(EXIT_FAILURE);
     }
-    alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
   }
-  offsets[0] = alloc_out.offset;
+  // guranteed to fit now!
+  alloc_out = arena_alloc(arena, sizeof(Pipeline) * nsizes->npls);
+  list->pipelines = (Pipeline *)alloc_out.ptr;
 
   alloc_out = arena_alloc(arena, sizeof(Cmd) * nsizes->ncmds);
-  if (!alloc_out.success) {
-    new_size = arena->size * 2;
-
-    if (arena_grow(arena, new_size) == ARENA_NO_MEM) {
-      fprintf(stderr, "fatal: arena realloc failed\n");
-      exit(EXIT_FAILURE);
-    }
-    alloc_out = arena_alloc(arena, sizeof(Cmd) * nsizes->ncmds);
-  }
-
-  list->pipelines = (Pipeline *)arena->data + offsets[0];
   list->cmds = (Cmd *)alloc_out.ptr;
 }
 

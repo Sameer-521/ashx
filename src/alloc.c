@@ -1,5 +1,6 @@
 #include "alloc.h"
 #include "token.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -269,5 +270,19 @@ bool arena_reset(Arena *arena, bool resize_default) {
   }
 
   arena->used = 0;
+  return true;
+}
+
+bool arena_has_space(Arena *arena, size_t bytes_to_write) {
+  if (!arena || !arena->data) {
+    fprintf(stderr, "fatal: arena not initialized\n");
+    exit(EXIT_FAILURE);
+  }
+
+  size_t size = bytes_to_write + ALIGNMENT(arena->used, ARENA_ALIGN);
+  if (arena->used + size > arena->size) {
+    return false;
+  }
+
   return true;
 }
