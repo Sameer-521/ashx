@@ -208,7 +208,7 @@ ArenaAllocOut arena_alloc(Arena *arena, size_t size) {
   return out;
 }
 
-ArenaStatus arena_grow(Arena *arena, size_t size) {
+ArenaStatus arena_grow(Arena *arena, size_t bytes_to_increase) {
   void *tmp;
 
   if (!arena || !arena->data) {
@@ -216,13 +216,17 @@ ArenaStatus arena_grow(Arena *arena, size_t size) {
     exit(EXIT_FAILURE);
   }
 
-  tmp = realloc(arena->data, size);
+  size_t new_size = arena->size + bytes_to_increase;
+  new_size += ALIGNMENT(
+      new_size, KiB(1)); // align to nearest kilobyte that can fit the new size
+
+  tmp = realloc(arena->data, new_size);
   if (!tmp) {
     return ARENA_NO_MEM;
   }
 
   arena->data = tmp;
-  arena->size = size;
+  arena->size = new_size;
 
   return ARENA_SUCCESS;
 }

@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include "token.h"
 
+#define KiB(n) (n) * 1024
+
 #define CHAR_ARENA_BLOCK_SIZE 256
 #define CHAR_ARENA_RESIZE_FACTOR 2
 
@@ -91,7 +93,7 @@ ArenaCreateOut arena_create(size_t size);
 
 ArenaAllocOut arena_alloc(Arena *arena, size_t size);
 
-ArenaStatus arena_grow(Arena *arena, size_t size);
+ArenaStatus arena_grow(Arena *arena, size_t bytes_to_increase);
 
 ArenaStatus arena_write(Arena *arena, void *src, size_t size);
 

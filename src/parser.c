@@ -67,9 +67,7 @@ static void init_arrays(Arena *arena, CmdList *list,
   total_size += n;
 
   if (!arena_has_space(arena, total_size)) {
-    // grow to the nearest 8byte aligned size thaf can hold total_size
-    if (arena_grow(arena, total_size + ALIGNMENT(total_size, 8)) !=
-        ARENA_SUCCESS) {
+    if (arena_grow(arena, total_size) != ARENA_SUCCESS) {
       fprintf(stderr, "ashx: fatal: arena realloc failed.\n");
       exit(EXIT_FAILURE);
     }
