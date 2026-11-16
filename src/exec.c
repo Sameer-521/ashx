@@ -1,9 +1,8 @@
 #include "builtins.h"
 #include "exec.h"
-#include <bits/wait.h>
-#include <linux/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 

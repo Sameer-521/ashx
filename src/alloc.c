@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // TODO: add better error handling AND fix bugs!
 
@@ -106,9 +107,9 @@ void print_token_array(const TokenArray *arr) {
     return;
   }
 
-  printf("TokenArray (Size: %u, Capacity: %u):\n", arr->size, arr->cap);
+  printf("TokenArray (Size: %zu, Capacity: %zu):\n", arr->size, arr->cap);
 
-  for (unsigned int i = 0; i < arr->size; i++) {
+  for (size_t i = 0; i < arr->size; i++) {
     Token t = arr->tokens[i];
 
     // Convert enum to a readable string
@@ -158,10 +159,10 @@ void print_token_array(const TokenArray *arr) {
       break;
     }
     if (t.type == TOKEN_NEWLINE) {
-      printf("  [%u] str_repr: \"\\n\" | str_offset: %u | type: %s\n", i,
+      printf("  [%zu] str_repr: \"\\n\" | str_offset: %zu | type: %s\n", i,
              t.str_offset, type_str);
     } else {
-      printf("  [%u] str_repr: \"%s\" | str_offset: %u | type: %s\n", i,
+      printf("  [%zu] str_repr: \"%s\" | str_offset: %zu | type: %s\n", i,
              t.str_repr ? t.str_repr : "(null)", t.str_offset, type_str);
     }
   }
