@@ -48,7 +48,7 @@ void ashx_loop(void) {
     // LET DESTRUCTION RAIN!
     free(input.line);
     if (!list_out.error.had_error)
-      parser_free_argv(&(list_out.cmd_list));
+      parser_free_allocations(&(list_out.cmd_list));
 
     arr_destroy(&(tokenized.token_arr));
     char_arena_reset(&char_arena, true);

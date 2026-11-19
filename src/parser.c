@@ -11,14 +11,13 @@
 
 #define DEFAULT_PARSER_ARR_CAP 8
 
-// TODO: handle redirection parsing
+// TODO: add token_type TOKEN_ERROR_APPEND
+#define IS_REDIRECT(token_type)                                                \
+  (token_type == TOKEN_GREATER_THAN || token_type == TOKEN_LESS_THAN ||        \
+   token_type == TOKEN_STDERR_REDIRECTION ||                                   \
+   token_type == TOKEN_STDERR_TO_1_REDIRECTION || token_type == TOKEN_APPEND)
 
-typedef enum {
-  REDIRECT_IN,
-  REDIRECT_OUT,
-  REDIRECT_ERR_OUT,
-  REDIRECT_ERR_TO_1,
-} RedirectType;
+// TODO: handle redirection parsing
 
 static PipelineOut parse_pipeline(TokenArray *arr, size_t *position,
                                   CmdList *list);
@@ -135,8 +134,10 @@ PipelineOut parse_pipeline(TokenArray *arr, size_t *position, CmdList *list) {
     cmd_out = parse_command(arr, position);
     if (cmd_out.error.had_error) {
       // free already allocated memory
-      for (size_t i = 0; i < pl_out.pl.ncmds; ++i)
+      for (size_t i = 0; i < pl_out.pl.ncmds; ++i) {
         stbds_arrfree(pl_out.pl.cmds[i].argv);
+        stbds_arrfree(pl_out.pl.cmds[i].redirects);
+      }
 
       pl_out.error = cmd_out.error;
       return pl_out;
@@ -174,14 +175,14 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
   stbds_arrput(out.cmd.argv, arr->tokens[*position].str_repr);
   advance(position);
 
+  stbds_arrsetcap(out.cmd.redirects, DEFAULT_PARSER_ARR_CAP);
   while ((tok_type = peek(arr, *position)) == TOKEN_WORD ||
          tok_type == TOKEN_QUOTED || tok_type == TOKEN_GREATER_THAN ||
          tok_type == TOKEN_LESS_THAN || tok_type == TOKEN_STDERR_REDIRECTION ||
-         tok_type == TOKEN_STDERR_TO_1_REDIRECTION) {
+         tok_type == TOKEN_STDERR_TO_1_REDIRECTION ||
+         tok_type == TOKEN_APPEND) {
 
-    if (tok_type == TOKEN_GREATER_THAN || tok_type == TOKEN_LESS_THAN ||
-        tok_type == TOKEN_STDERR_REDIRECTION ||
-        tok_type == TOKEN_STDERR_TO_1_REDIRECTION) {
+    if (IS_REDIRECT(tok_type)) {
       advance(position);
       err = parse_redirect(arr, position, tok_type, &(out.cmd));
       if (err.had_error) {
@@ -201,47 +202,29 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
 static ParserError parse_redirect(TokenArray *arr, size_t *position,
                                   TokenType type, Cmd *cmd) {
   ParserError err = {0};
-  RedirectType redirect;
-  char *filename;
+  RedirectType redirect_type;
+  char *filename = NULL;
 
   static const RedirectType token_to_redirect[] = {
       [TOKEN_GREATER_THAN] = REDIRECT_OUT,
       [TOKEN_LESS_THAN] = REDIRECT_IN,
       [TOKEN_STDERR_REDIRECTION] = REDIRECT_ERR_OUT,
       [TOKEN_STDERR_TO_1_REDIRECTION] = REDIRECT_ERR_TO_1,
+      [TOKEN_APPEND] = REDIRECT_OUT_APPEND,
   };
 
-  redirect = token_to_redirect[type];
-  switch (redirect) {
-  case REDIRECT_IN:
+  redirect_type = token_to_redirect[type];
+
+  // `2>&1` takes no filename
+  if (redirect_type != REDIRECT_ERR_TO_1) {
     err = consume_filename(arr, position, &filename);
     if (err.had_error)
       return err;
-    cmd->infile = filename;
-    break;
-  case REDIRECT_OUT:
-    err = consume_filename(arr, position, &filename);
-    if (err.had_error)
-      return err;
-    cmd->outfile = filename;
-    break;
-  case REDIRECT_ERR_OUT:
-    err = consume_filename(arr, position, &filename);
-    if (err.had_error)
-      return err;
-    cmd->err_outfile = filename;
-    break;
-  case REDIRECT_ERR_TO_1:
-    cmd->err_outfile = cmd->outfile;
-    break;
-  default:
-    // invalid direction for now
-    // TODO: CHANGE THIS LATER
-    set_error(arr->tokens[*position].type,
-              *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
-              TOKEN_FILENAME, &err, PARSER_INTERNAL_ERROR);
-    return err;
   }
+
+  Redirect redirect = {.filename = filename, .type = redirect_type};
+  stbds_arrput(cmd->redirects, redirect);
+  cmd->num_redirects++;
 
   return err;
 }
@@ -301,16 +284,35 @@ ParserPreCountOut parser_precount_cmdlist(const TokenArray *arr) {
   return out;
 }
 
-void parser_free_argv(CmdList *list) {
-  Cmd cmd;
+void parser_free_allocations(CmdList *list) {
   char **argv;
+  Redirect *redirects;
 
   for (size_t i = 0; i < list->ncmds; ++i) {
-    cmd = list->cmds[i];
-    argv = cmd.argv;
-    // printf("freeing: pl[%d].cmds[%d].argv\n", i, j);
+    argv = list->cmds[i].argv;
     stbds_arrfree(argv);
+    redirects = list->cmds[i].redirects;
+    stbds_arrfree(redirects);
+    // printf("freeing: pl[%d].cmds[%d].argv\n", i, j);
   }
+}
+
+static const char *redirect_type_to_string(RedirectType type) {
+  switch (type) {
+  case REDIRECT_IN:
+    return "in";
+  case REDIRECT_OUT:
+    return "out";
+  case REDIRECT_OUT_APPEND:
+    return "out-append";
+  case REDIRECT_ERR_OUT:
+    return "err-out";
+  case REDIRECT_ERR_OUT_APPEND:
+    return "err-out-append";
+  case REDIRECT_ERR_TO_1:
+    return "err-to-1";
+  }
+  return "unknown";
 }
 
 static void cmdlist_debug_print(const CmdList *list, FILE *out) {
@@ -319,7 +321,8 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
     return;
   }
 
-  fprintf(out, "CmdList: %zu pipeline(s)\n", list->npls);
+  fprintf(out, "CmdList: %zu pipeline(s), %zu cmd(s)\n", list->npls,
+          list->ncmds);
 
   for (size_t i = 0; i < list->npls; i++) {
     const Pipeline *p = &list->pipelines[i];
@@ -327,7 +330,9 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
 
     for (size_t j = 0; j < p->ncmds; j++) {
       const Cmd *c = &p->cmds[j];
-      fprintf(out, "    Cmd %zu:", j);
+      size_t global = (size_t)(c - list->cmds);
+
+      fprintf(out, "    Cmd %zu (global %zu):", j, global);
 
       if (c->argv) {
         for (size_t k = 0; c->argv[k]; k++)
@@ -337,10 +342,17 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
       }
       fputc('\n', out);
 
-      fprintf(out, "      infile:  %s\n", c->infile ? c->infile : "(none)");
-      fprintf(out, "      outfile: %s\n", c->outfile ? c->outfile : "(none)");
-      fprintf(out, "      err_outfile: %s\n",
-              c->err_outfile ? c->err_outfile : "(none)");
+      for (size_t k = 0; k < c->num_redirects; k++) {
+        const Redirect *r = &c->redirects[k];
+        if (r->type == REDIRECT_ERR_TO_1) {
+          fprintf(out, "      redirect: %s\n",
+                  redirect_type_to_string(r->type));
+        } else {
+          fprintf(out, "      redirect: %s -> %s\n",
+                  redirect_type_to_string(r->type),
+                  r->filename ? r->filename : "(null)");
+        }
+      }
     }
   }
 }

@@ -6,13 +6,24 @@
 #include "alloc.h"
 #include "token.h"
 
+typedef enum {
+  REDIRECT_IN,
+  REDIRECT_OUT,
+  REDIRECT_OUT_APPEND,
+  REDIRECT_ERR_OUT,
+  REDIRECT_ERR_OUT_APPEND,
+  REDIRECT_ERR_TO_1,
+} RedirectType;
+
+typedef struct {
+  char *filename;
+  RedirectType type;
+} Redirect;
+
 typedef struct {
   char **argv;
-  char *infile; // read input from file
-  char *outfile; // stdout -> file
-  char *err_outfile;
-  bool out_append; // dont overwrite contents of file?
-  bool err_out_append;
+  Redirect *redirects;
+  size_t num_redirects;
 } Cmd;
 
 typedef struct {
@@ -62,7 +73,7 @@ typedef struct {
   
 CmdListOut parse_tokens(TokenArray *arr, Arena *arena); 
 
-void parser_free_argv(CmdList *list);
+void parser_free_allocations(CmdList *list);
 
 void parser_print_error(const ParserError *err);
 

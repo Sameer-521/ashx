@@ -16,17 +16,47 @@
 #define BUILTIN_PID -99
 
 static void apply_redirects(Cmd *cmd) {
+  Redirect redirect;
+  int in, out, flags;
 
-  if (cmd->infile != NULL) {
-    int in = open(cmd->infile, O_RDONLY);
-    dup2(in, STDIN_FILENO);
-    close(in);
-  }
-  if (cmd->outfile != NULL) {
-    int out = open(cmd->outfile, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    dup2(out, STDOUT_FILENO);
-    // perror("dup2");
-    close(out);
+  for (size_t i = 0; i < cmd->num_redirects; i++) {
+    redirect = cmd->redirects[i];
+    switch (redirect.type) {
+    case REDIRECT_IN:
+      in = open(redirect.filename, O_RDONLY);
+      dup2(in, STDIN_FILENO);
+      close(in);
+      break;
+
+    case REDIRECT_OUT:
+    case REDIRECT_OUT_APPEND:
+      // if (redirect.filename != NULL) {
+      // }
+      flags = O_CREAT | O_WRONLY;
+      flags |= redirect.type == REDIRECT_OUT ? O_TRUNC : O_APPEND;
+      out = open(redirect.filename, flags, 0644);
+      dup2(out, STDOUT_FILENO);
+      close(out);
+      break;
+
+    case REDIRECT_ERR_OUT:
+    case REDIRECT_ERR_OUT_APPEND:
+      flags = O_CREAT | O_WRONLY;
+      flags |= redirect.type == REDIRECT_ERR_OUT ? O_TRUNC : O_APPEND;
+      out = open(redirect.filename, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+      dup2(out, STDERR_FILENO);
+      close(out);
+      break;
+
+    case REDIRECT_ERR_TO_1:
+      dup2(STDOUT_FILENO, STDERR_FILENO);
+      break;
+
+    default:
+      fprintf(stderr, "ashx: internal error: unsupported REDIRECTION type\n");
+      // TODO: handle error later
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
