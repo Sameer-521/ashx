@@ -1,8 +1,8 @@
 #ifndef EXEC_H
 #define EXEC_H
 
-int ashx_launch(char **args);
+#include "parser.h"
 
-int ashx_execute(char **args); 
+int ashx_run_cmdlist(CmdList *list);
 
 #endif

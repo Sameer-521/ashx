@@ -8,6 +8,7 @@
 // TODO add position field in Token struct to track
 //  orginal column index of token
 // FEATURE: add logic to recognize redirections
+// FEATURE: add character escaping
 
 typedef struct {
   CharArena *arena;
