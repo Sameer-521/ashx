@@ -129,7 +129,7 @@ static int run_pipeline(Pipeline *pipeline) {
     }
   }
 
-  for (size_t j = 0; j < ncmds; j++) {
+  for (size_t j = 0; j < ncmds - 1; j++) {
     close(fds[j][READ_END]);
     close(fds[j][WRITE_END]);
   }
