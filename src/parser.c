@@ -15,7 +15,9 @@
 #define IS_REDIRECT(token_type)                                                \
   (token_type == TOKEN_GREATER_THAN || token_type == TOKEN_LESS_THAN ||        \
    token_type == TOKEN_STDERR_REDIRECTION ||                                   \
-   token_type == TOKEN_STDERR_TO_1_REDIRECTION || token_type == TOKEN_APPEND)
+   token_type == TOKEN_STDERR_TO_1_REDIRECTION ||                              \
+   token_type == TOKEN_APPEND ||                                               \
+   token_type == TOKEN_STDERR_REDIRECTION_APPEND)
 
 // TODO: handle redirection parsing
 
@@ -177,10 +179,7 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
 
   stbds_arrsetcap(out.cmd.redirects, DEFAULT_PARSER_ARR_CAP);
   while ((tok_type = peek(arr, *position)) == TOKEN_WORD ||
-         tok_type == TOKEN_QUOTED || tok_type == TOKEN_GREATER_THAN ||
-         tok_type == TOKEN_LESS_THAN || tok_type == TOKEN_STDERR_REDIRECTION ||
-         tok_type == TOKEN_STDERR_TO_1_REDIRECTION ||
-         tok_type == TOKEN_APPEND) {
+         tok_type == TOKEN_QUOTED || IS_REDIRECT(tok_type)) {
 
     if (IS_REDIRECT(tok_type)) {
       advance(position);
@@ -209,6 +208,7 @@ static ParserError parse_redirect(TokenArray *arr, size_t *position,
       [TOKEN_GREATER_THAN] = REDIRECT_OUT,
       [TOKEN_LESS_THAN] = REDIRECT_IN,
       [TOKEN_STDERR_REDIRECTION] = REDIRECT_ERR_OUT,
+      [TOKEN_STDERR_REDIRECTION_APPEND] = REDIRECT_ERR_OUT_APPEND,
       [TOKEN_STDERR_TO_1_REDIRECTION] = REDIRECT_ERR_TO_1,
       [TOKEN_APPEND] = REDIRECT_OUT_APPEND,
   };
@@ -242,7 +242,7 @@ ParserError consume_filename(TokenArray *arr, size_t *position,
       // invalid redirection target
       set_error(arr->tokens[*position].type,
                 *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
-                TOKEN_FILENAME, &err, PARSER_INVALID_FILENAME);
+                TOKEN_FILENAME, &err, PARSER_MISSING_FILENAME);
       return err;
     }
 
@@ -360,7 +360,7 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out) {
 static const char *error_type_to_string(ErrorType type) {
   static const char *const error_strings[] = {
       [PARSER_UNEXPECTED_TOKEN] = "Unexpected token",
-      [PARSER_INVALID_FILENAME] = "Invalid filename",
+      [PARSER_MISSING_FILENAME] = "Missing filename",
       [PARSER_INTERNAL_ERROR] = "Internal error",
   };
   size_t arrlen = (sizeof(error_strings) / sizeof(error_strings[0]));

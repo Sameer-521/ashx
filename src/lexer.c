@@ -7,7 +7,6 @@
 
 // TODO add position field in Token struct to track
 //  orginal column index of token
-// FEATURE: add logic to recognize redirections
 // FEATURE: add character escaping
 
 typedef struct {
@@ -211,8 +210,24 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
           // ch = '1'
           flush_text_to_token(&text, &token_arr, TOKEN_STDERR_TO_1_REDIRECTION);
           state = NORMAL;
-        } else if (((position + 1) < input.len) &&
-                   input.line[position + 1] == '>') {
+        }
+
+        else if (((position + 2) < input.len) &&
+                 input.line[position + 1] == '>' &&
+                 input.line[position + 2] == '>') {
+
+          write_ch(&text, ch);
+          write_ch(&text, '>');
+          write_ch(&text, '>');
+          position += 2;
+          // ch = '>'
+          flush_text_to_token(&text, &token_arr,
+                              TOKEN_STDERR_REDIRECTION_APPEND);
+          state = NORMAL;
+        }
+
+        else if (((position + 1) < input.len) &&
+                 input.line[position + 1] == '>') {
 
           write_ch(&text, ch);
           write_ch(&text, '>');
