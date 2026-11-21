@@ -1,5 +1,4 @@
 #include "alloc.h"
-// #include "exec.h"
 #include "exec.h"
 #include "lexer.h"
 #include "line.h"
@@ -40,9 +39,11 @@ void ashx_loop(void) {
     }
 
     list_out = parse_tokens(&(tokenized.token_arr), &arena);
-    if (!list_out.error.had_error)
-      ashx_run_cmdlist(&(list_out.cmd_list));
-    else
+    if (!list_out.error.had_error) {
+      ExecError exec_err = ashx_run_cmdlist(&(list_out.cmd_list));
+      if (exec_err.had_error)
+        print_exec_error(&exec_err);
+    } else
       parser_print_error(&(list_out.error));
 
     // LET DESTRUCTION RAIN!
