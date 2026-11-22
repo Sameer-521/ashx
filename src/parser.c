@@ -12,7 +12,9 @@
 #define DBG_HERE() fprintf(stderr, "here -> %d\n", __LINE__)
 #define DEFAULT_PARSER_ARR_CAP 8
 
-// TODO: add token_type TOKEN_ERROR_APPEND
+// NOTE: right now the lexer is still not able to emit a NEWLINE at the end
+// when theres a stray backslash, ill fix that later
+
 #define IS_REDIRECT(token_type)                                                \
   (token_type == TOKEN_GREATER_THAN || token_type == TOKEN_LESS_THAN ||        \
    token_type == TOKEN_STDERR_REDIRECTION ||                                   \
@@ -40,6 +42,8 @@ static void cmdlist_debug_print(const CmdList *list, FILE *out);
 static void advance(size_t *index) { (*index)++; }
 
 static TokenType peek(TokenArray *arr, size_t index) {
+  if (index >= arr->size)
+    return TOKEN_NONE;
   return arr->tokens[index].type;
 }
 
@@ -97,6 +101,13 @@ CmdListOut parse_tokens(TokenArray *arr, Arena *arena) {
   while (peek(arr, position) != TOKEN_NEWLINE) {
     pl_out = parse_pipeline(arr, &position, &cmd_list);
     if (pl_out.error.had_error) {
+      for (size_t i = 0; i < cmd_list.npls; i++) {
+        Pipeline pl = cmd_list.pipelines[i];
+        for (size_t j = 0; j < pl.ncmds; j++) {
+          stbds_arrfree(pl.cmds[j].argv);
+          stbds_arrfree(pl.cmds[j].redirects);
+        }
+      }
       list_out.error = pl_out.error;
       return list_out;
     }
@@ -110,7 +121,14 @@ CmdListOut parse_tokens(TokenArray *arr, Arena *arena) {
     }
 
     if (peek(arr, position) != TOKEN_NEWLINE) {
-      // ERROR
+      // ERROR: cleanup ALL allocated arrays
+      for (size_t i = 0; i < cmd_list.npls; i++) {
+        Pipeline pl = cmd_list.pipelines[i];
+        for (size_t j = 0; j < pl.ncmds; ++j) {
+          stbds_arrfree(pl_out.pl.cmds[j].argv);
+          stbds_arrfree(pl_out.pl.cmds[j].redirects);
+        }
+      }
       set_error(position < arr->size ? arr->tokens[position].type : TOKEN_NONE,
                 position > 0 ? arr->tokens[position - 1].type : TOKEN_NONE,
                 TOKEN_NEWLINE, &(list_out.error), PARSER_UNEXPECTED_TOKEN);
@@ -136,7 +154,7 @@ PipelineOut parse_pipeline(TokenArray *arr, size_t *position, CmdList *list) {
   for (;;) {
     cmd_out = parse_command(arr, position);
     if (cmd_out.error.had_error) {
-      // free already allocated memory
+      // ERROR: free already allocated memory OWNED by current pl
       for (size_t i = 0; i < pl_out.pl.ncmds; ++i) {
         stbds_arrfree(pl_out.pl.cmds[i].argv);
         stbds_arrfree(pl_out.pl.cmds[i].redirects);
@@ -186,6 +204,8 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
       advance(position);
       err = parse_redirect(arr, position, tok_type, &(out.cmd));
       if (err.had_error) {
+        stbds_arrfree(out.cmd.argv);
+        stbds_arrfree(out.cmd.redirects);
         out.error = err;
         return out;
       }
