@@ -17,4 +17,10 @@ clean:
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all clean
+format:
+	@git ls-files '*.c' '*.h' ':!**/stb_ds.h' ':!stb_ds.h' | xargs -r clang-format -i
+
+format-check:
+	@git ls-files '*.c' '*.h' ':!**/stb_ds.h' ':!stb_ds.h' | xargs -r clang-format --dry-run --Werror
+
+.PHONY: all clean format format-check

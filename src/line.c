@@ -6,20 +6,20 @@
 #include <sys/types.h>
 
 GetLineOut ashx_readline(void) {
-  char *line = NULL;
-  size_t bufsize = 0;
-  GetLineOut out;
+    char *line = NULL;
+    size_t bufsize = 0;
+    GetLineOut out;
 
-  if (getline(&line, &bufsize, stdin) == -1) {
-    if (feof(stdin)) {
-      // Crtl-d
-      exit(EXIT_SUCCESS);
-    } else {
-      perror("readline");
-      exit(EXIT_FAILURE);
+    if (getline(&line, &bufsize, stdin) == -1) {
+        if (feof(stdin)) {
+            // Crtl-d
+            exit(EXIT_SUCCESS);
+        } else {
+            perror("readline");
+            exit(EXIT_FAILURE);
+        }
     }
-  }
-  out.line = line;
-  out.len = strlen(line);
-  return out;
+    out.line = line;
+    out.len = strlen(line);
+    return out;
 }

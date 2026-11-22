@@ -6,7 +6,7 @@ int ashx_help(char **args);
 int ashx_exit(char **args);
 
 extern char *builtin_str[];
-extern int (*builtin_func[]) (char **);
+extern int (*builtin_func[])(char **);
 
 int num_builtins(void);
 

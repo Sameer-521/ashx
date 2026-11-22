@@ -1,10 +1,10 @@
 #ifndef ALLOC_H
 #define ALLOC_H
 
+#include "token.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include "token.h"
 
 #define KiB(n) (n) * 1024
 
@@ -13,14 +13,14 @@
 
 // char_arena forward declarations and types
 typedef struct {
-  char *data;
-  size_t size;
-  size_t used;
+    char *data;
+    size_t size;
+    size_t used;
 } CharArena;
 
 typedef struct {
-  bool success;
-  CharArena arena;
+    bool success;
+    CharArena arena;
 } CharArenaCreateOut;
 
 CharArenaCreateOut char_arena_create(size_t size);
@@ -35,9 +35,9 @@ bool char_arena_reset(CharArena *arena, bool resize_default);
 #define ARR_RESIZE_FACTOR 2
 
 typedef struct {
-  Token *tokens;
-  size_t size;
-  size_t cap;
+    Token *tokens;
+    size_t size;
+    size_t cap;
 } TokenArray;
 
 typedef enum {
@@ -45,11 +45,11 @@ typedef enum {
     FAILED = 1,
     ARR_CREATION_FAILED = 2,
     ARR_ERR_NO_MEM = 3,
-} TokenArrayStatus; 
+} TokenArrayStatus;
 
 typedef struct {
-  TokenArray arr;
-  TokenArrayStatus status;
+    TokenArray arr;
+    TokenArrayStatus status;
 } TokenArrayOut;
 
 TokenArrayOut arr_create(size_t cap);
@@ -67,26 +67,26 @@ void print_token_array(const TokenArray *arr);
 #define ALIGNMENT(nbytes, align) ((align) - ((nbytes) % (align)) % (align))
 
 typedef struct {
-  void *data;
-  size_t used;
-  size_t size;
+    void *data;
+    size_t used;
+    size_t size;
 } Arena;
 
 typedef struct {
-  bool success;
-  Arena arena;
+    bool success;
+    Arena arena;
 } ArenaCreateOut;
 
 typedef struct {
-  bool success;
-  void *ptr;
-  size_t offset;
+    bool success;
+    void *ptr;
+    size_t offset;
 } ArenaAllocOut;
 
 typedef enum {
-  ARENA_SUCCESS,
-  ARENA_FAILED,
-  ARENA_NO_MEM,
+    ARENA_SUCCESS,
+    ARENA_FAILED,
+    ARENA_NO_MEM,
 } ArenaStatus;
 
 ArenaCreateOut arena_create(size_t size);
