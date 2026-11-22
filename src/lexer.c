@@ -246,6 +246,30 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
       }
       break;
 
+    case '\\':
+      // havent added them yet
+      // if (state == IN_DBL_QOUTE) {...}
+      if (state == IN_QUOTE) {
+        if (input.line[position + 1] == '\'') {
+          ch = input.line[position + 1];
+          write_ch(&text, ch);
+          position++;
+        } else
+          write_ch(&text, ch);
+      } else if (position < input.len - 1) {
+        // advance to next char
+        ch = input.line[position + 1];
+        write_ch(&text, ch);
+        position++;
+        state = IN_WORD;
+      } else {
+        write_ch(&text, '\\');
+        fprintf(stderr, "ashx: warning: unhandled stray `\\`.\n");
+        state = IN_WORD;
+      }
+      // error?
+
+      break;
     default:
       if (state == IN_QUOTE) {
         write_ch(&text, ch);
