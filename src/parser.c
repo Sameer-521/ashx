@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define DBG_HERE() fprintf(stderr, "here -> %d\n", __LINE__)
 #define DEFAULT_PARSER_ARR_CAP 8
 
 // TODO: add token_type TOKEN_ERROR_APPEND
@@ -110,8 +111,8 @@ CmdListOut parse_tokens(TokenArray *arr, Arena *arena) {
 
     if (peek(arr, position) != TOKEN_NEWLINE) {
       // ERROR
-      set_error(arr->tokens[position].type,
-                position == 0 ? TOKEN_NONE : arr->tokens[position - 1].type,
+      set_error(position < arr->size ? arr->tokens[position].type : TOKEN_NONE,
+                position > 0 ? arr->tokens[position - 1].type : TOKEN_NONE,
                 TOKEN_NEWLINE, &(list_out.error), PARSER_UNEXPECTED_TOKEN);
       return list_out;
     }
@@ -166,8 +167,8 @@ CmdOut parse_command(TokenArray *arr, size_t *position) {
   TokenType tok_type;
 
   if (peek(arr, *position) != TOKEN_WORD) {
-    set_error(arr->tokens[*position].type,
-              *position == 0 ? TOKEN_NONE : arr->tokens[*position - 1].type,
+    set_error(*position < arr->size ? arr->tokens[*position].type : TOKEN_NONE,
+              *position > 0 ? arr->tokens[*position - 1].type : TOKEN_NONE,
               TOKEN_WORD, &(out.error), PARSER_UNEXPECTED_TOKEN);
     return out; // for now
   }
