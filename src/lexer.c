@@ -1,5 +1,5 @@
-#include "lexer.h"
 #include "alloc.h"
+#include "lexer.h"
 #include "line.h"
 #include "token.h"
 #include <stddef.h>
@@ -28,6 +28,7 @@ typedef enum {
     IN_AMPERSAND,    // '&'
     IN_AND,          // '&&'
     IN_SEMICOLON,    // ';'
+    TOKENIZER_EXIT
 } TokenizerState;
 
 static const TokenType state_to_token_type[] = {
@@ -109,8 +110,13 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
             break;
 
         case '\n':
-            if (state == IN_QUOTE) {
+            // are we at the end?
+            if (state == IN_QUOTE && position < input.len - 1) {
                 write_ch(&text, ch);
+            } else if (state == IN_QUOTE) {
+                fprintf(stderr, "ashx: unterminated literal\n");
+                // right now we should just return early
+                state = TOKENIZER_EXIT;
             } else {
                 emit_if_needed(&text, &token_arr, state);
                 write_ch(&text, ch);
@@ -251,7 +257,7 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
                     position++;
                 } else
                     write_ch(&text, ch);
-            } else if (position < input.len - 1) {
+            } else if (position + 1 < input.len - 1) {
                 // advance to next char
                 ch = input.line[position + 1];
                 write_ch(&text, ch);
@@ -280,12 +286,16 @@ TokenizeOut tokenize(GetLineOut input, CharArena *arena) {
             }
             break;
         }
-
+        if (state == TOKENIZER_EXIT) {
+            out.token_arr = token_arr;
+            out.success = false;
+            return out;
+        }
         ch = input.line[++position];
     }
 
     // emit final token in case newline was consumed by
-    // unterminated quotes
+    // unterminated quotes TODO: this shi didnt actually work
     emit_if_needed(&text, &token_arr, state);
 
     // compute str_view ptrs

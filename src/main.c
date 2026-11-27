@@ -34,22 +34,24 @@ void ashx_loop(void) {
 
         tokenized = tokenize(input, &char_arena);
         if (!tokenized.success) {
-            fprintf(stderr, "fatal: failed to tokenize input\n");
-            exit(EXIT_FAILURE);
-        }
+            // fprintf(stderr, "fatal: failed to tokenize input\n");
+            ;
+            // do literally nothing for now of course
+        } else {
+            list_out = parse_tokens(&(tokenized.token_arr), &arena);
+            if (!list_out.error.had_error) {
+                ExecError exec_err = ashx_run_cmdlist(&(list_out.cmd_list));
+                if (exec_err.had_error)
+                    print_exec_error(&exec_err);
+            } else
+                parser_print_error(&(list_out.error));
 
-        list_out = parse_tokens(&(tokenized.token_arr), &arena);
-        if (!list_out.error.had_error) {
-            ExecError exec_err = ashx_run_cmdlist(&(list_out.cmd_list));
-            if (exec_err.had_error)
-                print_exec_error(&exec_err);
-        } else
-            parser_print_error(&(list_out.error));
+            if (!list_out.error.had_error)
+                parser_free_allocations(&(list_out.cmd_list));
+        }
 
         // LET DESTRUCTION RAIN!
         free(input.line);
-        if (!list_out.error.had_error)
-            parser_free_allocations(&(list_out.cmd_list));
 
         arr_destroy(&(tokenized.token_arr));
         char_arena_reset(&char_arena, true);
